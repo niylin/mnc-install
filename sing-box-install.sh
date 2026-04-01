@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 echo "欢迎使用 sing-box 一键安装脚本！"
 echo "本脚本将安装 sing-box，并配置 hysteria,reality"
-echo "请确保您已正确设置DNS解析，并且服务器可以访问互联网"
 echo "生成的客户端配置中，ip地址将配置为当前服务器的出站IP，如果出站和入站IP不同，请手动修改客户端配置文件"
 while true; do
     echo "请选择使用的IP地址类型："
@@ -15,14 +14,14 @@ while true; do
 done
 
 while true; do
-    read -p "请输入 hysteria 端口 (例如 58999, reality将自动设为该值+1): " hysteria_port < /dev/tty
+    read -p "请输入 hysteria 端口 (例如 58999, reality将自动设为该值+10): " hysteria_port < /dev/tty
     if [[ "$hysteria_port" =~ ^[0-9]+$ ]] && [ "$hysteria_port" -le 65533 ]; then
         break
     fi
     echo "错误：请输入有效的端口号数字 (1-65533)。"
 done
 
-reality_port=$((hysteria_port + 1))
+reality_port=$((hysteria_port + 10))
 
 set -e
 
@@ -89,15 +88,12 @@ countryCode=$(echo "$name_response" | jq -r '.countryCode // empty')
 cityinfo=$(echo "$name_response" | jq -r '.city // "Unknown"')
 flag=$(python3 -c "print(''.join(chr(127397 + ord(c)) for c in '$countryCode'))" 2>/dev/null || echo "🌐")
 
-jiedian_name="${flag}${cityinfo} CF"
-HY_jiedian_name=${jiedian_name/CF/HY}
-RE_jiedian_name=${jiedian_name/CF/RE}
+proxy_name="${flag}${cityinfo} CF"
+HY_proxy_name=${proxy_name/CF/HY}
+RE_proxy_name=${proxy_name/CF/RE}
 
 # 证书
 mkdir -p /opt/cert
-(crontab -l 2>/dev/null; \
-echo "0 0 * * 0 wget -N -O /opt/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/$Certificate_name.crt"; \
-echo "0 0 * * 0 wget -N -O /opt/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/$Certificate_name.key") | crontab -
 
 wget -N -O /opt/cert/$Certificate_name.crt "https://link.wdqgn.eu.org/nopasswd/$Certificate_name.crt"
 wget -N -O /opt/cert/$Certificate_name.key "https://link.wdqgn.eu.org/nopasswd/$Certificate_name.key"
@@ -149,8 +145,8 @@ cat > /etc/sing-box/config.json <<EOF
 }
 EOF
 
-cat > ~/link.yml <<EOF
-  - name: ${HY_jiedian_name} |${current_time}
+cat > ~/link.yaml <<EOF
+  - name: ${HY_proxy_name} |${current_time}
     type: hysteria2
     server: $ip_address
     port: $hysteria_port
@@ -159,7 +155,7 @@ cat > ~/link.yml <<EOF
     alpn:
       - h3
   
-  - name: ${RE_jiedian_name} |${current_time}
+  - name: ${RE_proxy_name} |${current_time}
     type: vless
     server: $ip_address
     port: $reality_port
@@ -174,13 +170,18 @@ cat > ~/link.yml <<EOF
       short-id: $shortId
     client-fingerprint: chrome
 EOF
-
+cat ~/link.yaml
 if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now sing-box
     systemctl status sing-box --no-pager
 else
     rc-update add sing-box default
-    rc-service sing-box start
+    rc-service sing-box restart
 fi
-
-cat ~/link.yml
+if command -v crontab &>/dev/null; then
+(crontab -l 2>/dev/null; \
+echo "0 0 * * 0 wget -N -O /etc/mihomo/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/$Certificate_name.crt"; \
+echo "0 0 * * 0 wget -N -O /etc/mihomo/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/$Certificate_name.key") | crontab -
+else
+    echo "未检测到 crontab，请手动设置定时任务更新证书"
+fi
