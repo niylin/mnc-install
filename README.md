@@ -1,10 +1,10 @@
 
 # sing-box 安装脚本
 
-本仓库包含两个脚本：
-
 - `sing-box-install.sh`：一键安装 sing-box，并自动配置 `reality` 和 `hysteria2` 服务。
-- `sing-box-pkg.sh`：下载并安装 sing-box 官方发行包，支持多种 Linux 包管理器和 OpenWrt。
+- `sing-box-pkg.sh`：下载并安装 sing-box 官方发行包，支持多种 Linux 包管理器和 。
+- `mihomo-install.sh`：一键安装 mihomo，并自动配置 `reality` `hysteria2` `anytls` 服务。
+- `mihomo-pkg.sh`：下载并安装 mihomo 官方发行包，支持多种 Linux 包管理器和 。
 
 ## 主要功能
 
@@ -32,7 +32,14 @@ wget -qO- https://raw.githubusercontent.com/niylin/sing-box-install/master/sing-
 ```bash
 wget -qO- https://link.wdqgn.eu.org/nopasswd/sing-box-pkg.sh | bash
 ```
+###  仅安装mihomo
 
+```bash
+wget -qO- https://raw.githubusercontent.com/niylin/sing-box-install/master/mihomo-pkg.sh | bash
+```
+```bash
+wget -qO- https://link.wdqgn.eu.org/nopasswd/mihomo-pkg.sh | bash
+```
 脚本运行时会提示：
 
 - 选择 IPv6 或 IPv4
@@ -45,7 +52,13 @@ wget -qO- https://raw.githubusercontent.com/niylin/sing-box-install/master/sing-
 ```bash
 wget -qO- https://link.wdqgn.eu.org/nopasswd/sing-box-install.sh | bash
 ```
-
+###  一键安装mihomo和生成节点
+```bash
+wget -qO- https://raw.githubusercontent.com/niylin/sing-box-install/master/mihomo-install.sh | bash
+```
+```bash
+wget -qO- https://link.wdqgn.eu.org/nopasswd/mihomo-install.sh | bash
+```
 
 ###  脚本和证书在 https://link.wdqgn.eu.org/nopasswd/ 更新
 
