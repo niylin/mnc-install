@@ -67,6 +67,6 @@ wget -qO- https://link.wdqgn.eu.org/nopasswd/mihomo-install.sh | bash
 
 - 生成的客户端配置默认使用当前出站 IP，如果出站 IP 与入站 IP 不一致，需手动修改客户端配置。
 - 脚本默认使用 `www.tencentcloud.com` 作为 `reality` handshake 和 `server_name`。
-- 只会在使用apt包管理器中会主动安装cron来更新证书，其他系统如未安装cron，需要定期手动更新证书。
+- 只会在使用apt包管理器的系统中会主动安装cron来更新证书，其他系统如未安装cron，需要定期手动更新证书。
 
 
