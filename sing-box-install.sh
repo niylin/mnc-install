@@ -180,8 +180,8 @@ else
 fi
 if command -v crontab &>/dev/null; then
 (crontab -l 2>/dev/null; \
-echo "0 0 * * 0 wget -N -O /etc/mihomo/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/$Certificate_name.crt"; \
-echo "0 0 * * 0 wget -N -O /etc/mihomo/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/$Certificate_name.key") | crontab -
+echo "0 0 * * 0 wget -N -O /opt/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/$Certificate_name.crt"; \
+echo "0 0 * * 0 wget -N -O /opt/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/$Certificate_name.key") | crontab -
 else
     echo "未检测到 crontab，请手动设置定时任务更新证书"
 fi
