@@ -23,10 +23,10 @@ done
 
 reality_port=$((hysteria_port + 10))
 
-set -e
 
-PKGS="curl wget nano jq python3"
-CPKGS="curl wget nano jq cron python3"
+
+PKGS="curl wget jq python3"
+CPKGS="curl wget jq cron python3"
 
 # 先安装依赖
 if command -v apt >/dev/null 2>&1; then
@@ -47,18 +47,35 @@ else
     exit 1
 fi
 
-
 # 获取本机IP
-if [ "$ip_type_choice" == "1" ]; then
-    ipv6_address=$(curl -sL  https://ipv6.ping0.cc)
-    ip_address=$ipv6_address
-    record_type="AAAA"
-elif [ "$ip_type_choice" == "2" ]; then
-    ipv4_address=$(curl -sL "https://ipv4.ping0.cc")
-    ip_address=$ipv4_address
-    record_type="A"
-fi
+ipv4_regex='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
+ipv6_regex='^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$'
 
+if [ "$ip_type_choice" == "1" ]; then
+    ip_address=$(curl -6 -sL --max-time 5 https://ip-api.wdqgn.eu.org | jq -r '.ip // empty')
+    if [[ -z "$ip_address" || ! "$ip_address" =~ $ipv6_regex ]]; then
+        echo "提示：未能自动获取到有效的 IPv6 地址。"
+        until [[ "$ip_address" =~ $ipv6_regex ]]; do
+            read -p "请输入服务器的 IPv6 地址: " ip_address < /dev/tty
+            if [[ ! "$ip_address" =~ $ipv6_regex ]]; then
+                echo "格式错误，请检查后再输入。"
+            fi
+        done
+    fi
+
+elif [ "$ip_type_choice" == "2" ]; then
+    ip_address=$(curl -4 -sL --max-time 5 https://ip-api.wdqgn.eu.org | jq -r '.ip // empty')
+    if [[ -z "$ip_address" || ! "$ip_address" =~ $ipv4_regex ]]; then
+        echo "提示：未能自动获取到有效的 IPv4 地址。"
+        until [[ "$ip_address" =~ $ipv4_regex ]]; do
+            read -p "请输入服务器的 IPv4 地址: " ip_address < /dev/tty
+            if [[ ! "$ip_address" =~ $ipv4_regex ]]; then
+                echo "格式错误，请检查后再输入。"
+            fi
+        done
+    fi
+fi
+ 
 # 检查 sing-box 是否在系统路径中
 if command -v sing-box >/dev/null 2>&1; then
     echo "--------------------------------"
@@ -67,11 +84,11 @@ if command -v sing-box >/dev/null 2>&1; then
     echo "--------------------------------"
 else
     echo "未检测到 sing-box，正在开始安装..."
-    curl -fsSL https://link.wdqgn.eu.org/nopasswd/sing-box-pkg.sh | sh
+    curl -fsSL https://link.wdqgn.eu.org/nopasswd/pkg/sing-box-pkg.sh | sh
 fi
 
 current_time=$(TZ=UTC-8 date +"%Y%m%d-%H%M")
-Certificate_name="bnm.uw.to"
+Certificate_name="nnn.uw.to"
 
 # 生成密钥
 shortId=$(sing-box generate rand 8 --hex)
@@ -95,8 +112,8 @@ RE_proxy_name=${proxy_name/CF/RE}
 # 证书
 mkdir -p /etc/sing-box/cert
 
-wget -N -O /etc/sing-box/cert/$Certificate_name.crt "https://link.wdqgn.eu.org/nopasswd/$Certificate_name.crt"
-wget -N -O /etc/sing-box/cert/$Certificate_name.key "https://link.wdqgn.eu.org/nopasswd/$Certificate_name.key"
+wget -N -O /etc/sing-box/cert/$Certificate_name.crt "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"
+wget -N -O /etc/sing-box/cert/$Certificate_name.key "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key"
 
 mkdir -p /etc/sing-box
 
@@ -112,11 +129,11 @@ cat > /etc/sing-box/config.json <<EOF
       ],
       "tls": {
         "enabled": true,
-        "server_name": "www.tencentcloud.com",
+        "server_name": "www.microsoft.com",
         "reality": {
           "enabled": true,
           "handshake": {
-            "server": "www.tencentcloud.com",
+            "server": "www.microsoft.com",
             "server_port": 443
           },
           "private_key": "$private_key",
@@ -163,7 +180,7 @@ cat > ~/link.yaml <<EOF
   tls: true
   udp: true
   flow: xtls-rprx-vision
-  servername: www.tencentcloud.com
+  servername: www.microsoft.com
   reality-opts:
     public-key: $public_key
     short-id: $shortId
@@ -173,12 +190,12 @@ cat ~/link.yaml
 
 if command -v crontab &>/dev/null; then
 (crontab -l 2>/dev/null; \
-echo "0 0 * * 0 wget -N -O /etc/sing-box/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/$Certificate_name.crt"; \
-echo "0 0 * * 0 wget -N -O /etc/sing-box/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/$Certificate_name.key") | crontab -
+echo "0 0 * * 0 wget -N -O /etc/sing-box/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"; \
+echo "0 0 * * 0 wget -N -O /etc/sing-box/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key") | crontab -
 else
     echo "未检测到 crontab，请手动设置定时任务更新证书"
-    echo "wget -N -O /etc/sing-box/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/$Certificate_name.crt"
-    echo "wget -N -O /etc/sing-box/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/$Certificate_name.key"
+    echo "wget -N -O /etc/sing-box/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"
+    echo "wget -N -O /etc/sing-box/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key"
 fi
 if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now sing-box

@@ -1,0 +1,221 @@
+mixed-port: 7890
+tproxy-port: 7891
+allow-lan: true
+bind-address: "*"
+mode: rule
+log-level: info
+ipv6: true
+keep-alive-interval: 30
+find-process-mode: strict
+external-controller: "127.0.0.1:9090"
+secret: "password-config"
+external-ui: ui
+external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
+profile:
+  store-selected: true
+  store-fake-ip: false
+unified-delay: true
+tcp-concurrent: true
+global-client-fingerprint: chrome
+geodata-mode: true
+geox-url:
+  geoip: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
+geo-auto-update: true
+geo-update-interval: 24
+global-ua: clash.meta
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+  force-domain:
+    - "cloudflare-ech.com"
+    - "edge.microsoft.com"
+    - "google-ech.net"
+    - "defiant.cloudflare.com"
+    - "+.cloudflare-ech.com"
+  skip-domain:
+    - "Mijia Cloud"
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  enhanced-mode: redir-host
+  prefer-h3: true
+  ipv6: true
+  prefer-ipv6: true
+  respect-rules: true
+  use-hosts: true
+  use-system-hosts: true
+  nameserver:
+    - https://cloudflare-dns.com/dns-query
+    - https://dns.alidns.com/dns-query
+  nameserver-policy:
+    "geosite:private,apple@cn,category-games@cn,cn":
+      - 223.5.5.5
+      - 119.29.29.29
+    "geosite:google,geolocation-!cn,gfw":
+      - https://cloudflare-dns.com/dns-query
+      - tls://8.8.4.4
+  proxy-server-nameserver:
+    - https://cloudflare-dns.com/dns-query
+    - 223.5.5.5
+proxy-providers:
+  proxies_un1:
+    type: http
+    url: my-subscription-address
+    interval: 3600
+    health-check:
+      enable: true
+      url: http://1.0.0.1
+      interval: 1800
+proxy-groups:
+  - name: 🗽NetSelect
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - 🔥AutoSelect
+      - DIRECT
+    url: http://1.0.0.1
+  - name: 🌀google
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - 🗽NetSelect
+    url: http://1.0.0.1
+  - name: ⌨️openai
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - 🗽NetSelect
+    url: http://chatgpt.com/cdn-cgi/trace
+  - name: 🛹others
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - 🗽NetSelect
+      - ➡️全球直连
+  - name: 🎮games
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - ➡️全球直连
+  - name: 📺YouTube
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - 🗽NetSelect
+  - name: 📱telegram
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - 🗽NetSelect
+  - name: 🗃OneDrive
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - 🗽NetSelect
+      - ➡️全球直连
+  - name: 🏴‍☠️全球拦截
+    type: select
+    proxies:
+      - REJECT
+      - 🗽NetSelect
+      - 🔥AutoSelect
+      - ➡️全球直连
+  - name: ➡️全球直连
+    type: select
+    use:
+      - proxies_un1
+    proxies:
+      - DIRECT
+      - 🗽NetSelect
+  - name: 🔥AutoSelect
+    type: url-test
+    url: http://1.0.0.1
+    interval: "3000"
+    use:
+      - proxies_un1
+rule-providers:
+  lancidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt"
+    path: ./ruleset/lancidr.yaml
+    interval: 86400
+  applications:
+    type: http
+    behavior: classical
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt"
+    path: ./ruleset/applications.yaml
+    interval: 86400
+rules:
+  - RULE-SET,lancidr,DIRECT
+  - GEOSITE,private,DIRECT
+  - GEOSITE,category-ads-all,🏴‍☠️全球拦截
+  - PROCESS-NAME,sshd,➡️全球直连
+  - PROCESS-NAME,ssh,➡️全球直连
+  - DOMAIN-SUFFIX,recaptcha.net,🌀google
+  - DOMAIN-SUFFIX,googletagmanager.com,🌀google
+  - DOMAIN-SUFFIX,services.googleapis.cn,🌀google
+  - GEOSITE,openai,⌨️openai
+  - GEOSITE,onedrive,🗃OneDrive
+  - GEOSITE,mega,🗃OneDrive
+  - GEOSITE,microsoft,🗃OneDrive
+  - GEOIP,telegram,📱telegram
+  - GEOSITE,telegram,📱telegram
+  - GEOSITE,discord,📱telegram
+  - GEOSITE,line,📱telegram
+  - GEOSITE,whatsapp,📱telegram
+  - GEOSITE,tiktok,📺YouTube
+  - GEOSITE,youtube,📺YouTube
+  - GEOSITE,netflix,📺YouTube
+  - GEOSITE,disney,📺YouTube
+  - GEOSITE,hbo,📺YouTube
+  - GEOSITE,spotify,📺YouTube
+  - GEOSITE,google,🌀google
+  - GEOSITE,oracle,🌀google
+  - GEOSITE,github,🌀google
+  - GEOSITE,gitlab,🌀google
+  - GEOSITE,reddit,🌀google
+  - GEOSITE,twitter,🌀google
+  - GEOSITE,cloudflare,🌀google
+  - GEOSITE,binance,🌀google
+  - GEOSITE,amazon,🗽NetSelect
+  - GEOSITE,meta,🗽NetSelect
+  - GEOSITE,apple,🗽NetSelect
+  - GEOSITE,speedtest,🗽NetSelect
+  - GEOSITE,docker,🗽NetSelect
+  - GEOSITE,steam,🎮games
+  - GEOSITE,epicgames,🎮games
+  - GEOSITE,blizzard,🎮games
+  - GEOSITE,ea,🎮games
+  - GEOSITE,ubisoft,🎮games
+  - GEOSITE,nintendo,🎮games
+  - GEOSITE,playstation,🎮games
+  - GEOSITE,xbox,🎮games
+  - GEOSITE,riot,🎮games
+  - GEOSITE,bytedance,➡️全球直连
+  - GEOSITE,bilibili,➡️全球直连
+  - GEOSITE,sina,➡️全球直连
+  - GEOSITE,steam@cn,➡️全球直连
+  - RULE-SET,applications,➡️全球直连
+  - GEOSITE,gfw,🗽NetSelect
+  - GEOSITE,cn,➡️全球直连
+  - GEOIP,CN,➡️全球直连
+  - MATCH,🛹others
