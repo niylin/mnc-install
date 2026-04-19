@@ -42,7 +42,7 @@ curl -fsSL https://link.wdqgn.eu.org/nopasswd/cloudflared-install.sh | bash
 ```
 
 
-## worker,用于创建隧道和dns分发API,可部署在Cloudflare Workers
+### worker,用于tunnel和dns分发API,可部署在Cloudflare Workers
 - tunnel.js  
 - BASE_DOMAIN:用于分发的域,  CF_ACCOUNT_ID:账户标识ID,  CF_ZONE_ID:用于分发域的ZONE_ID
 - CF_API_TOKEN:拥有管理隧道和创建特定域dns的权限的令牌,一般通过cloudflared通过 cloudflared login 创建,然后找到该令牌,点击轮转即可获得通用令牌  
