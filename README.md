@@ -52,11 +52,15 @@ curl -fsSL https://link.wdqgn.eu.org/nopasswd/cloudflared-install.sh | bash
 - BASE_DOMAIN:用于分发的域  CF_ACCOUNT_ID:账户标识ID  CF_ZONE_ID:用于分发域的ZONE_ID
 - CF_API_TOKEN:拥有管理隧道和创建特定域dns的权限的令牌,一般通过cloudflared通过 cloudflared login 创建,然后找到该令牌,点击轮转即可获得通用令牌  
 - CREATE_PATH:自定义PATH,更改即可使旧链接失效
--  
+- 请求方式,访问链接即可 https://API_DOMAIN/YOUR_CREATE_PATH
   ![tunnel](png/tunnel.png)
 
 - dns.js
 - API_TOKEN:创建特定域dns的权限的令牌,控制台手动生成.勾选dns权限即可
 - ZONE_ID:用于分发域的ZONE_ID 
 - CREATE_PATH:自定义PATH,更改即可使旧链接失效
+- 请求方式  domain_name;ip_address需要解析的域名和IP地址
+- curl -s -X POST https://API_DOMAIN/YOUR_CREATE_PATH -H "Content-Type: application/json" -d "{\"domain\":\"$domain_name\",\"ip\":\"$ip_address\"}"
+
+
   ![dns](png/dns.png)
