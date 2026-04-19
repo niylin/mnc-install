@@ -41,15 +41,10 @@ curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/cloudflar
 curl -fsSL https://link.wdqgn.eu.org/nopasswd/cloudflared-install.sh | bash
 ```
 
-## 功能特性
-
-- **自动依赖安装**：自动检测并安装 `curl`, `wget`, `jq`, `python3`, `openssl`, `nginx` 等依赖。
-- **多平台支持**：支持 `apt`, `dnf`, `yum`, `pacman`, `zypper`, `apk` 等主流包管理器。
-- **证书管理**：自动配置证书并设置定时任务更新（仅限支持定时任务的系统）。
 
 ## worker,用于创建隧道和dns分发API
 - tunnel.js  
-- BASE_DOMAIN:用于分发的域  CF_ACCOUNT_ID:账户标识ID  CF_ZONE_ID:用于分发域的ZONE_ID
+- BASE_DOMAIN:用于分发的域,  CF_ACCOUNT_ID:账户标识ID,  CF_ZONE_ID:用于分发域的ZONE_ID
 - CF_API_TOKEN:拥有管理隧道和创建特定域dns的权限的令牌,一般通过cloudflared通过 cloudflared login 创建,然后找到该令牌,点击轮转即可获得通用令牌  
 - CREATE_PATH:自定义PATH,更改即可使旧链接失效
 - 请求方式,访问链接即可 https://API_DOMAIN/YOUR_CREATE_PATH
@@ -60,7 +55,8 @@ curl -fsSL https://link.wdqgn.eu.org/nopasswd/cloudflared-install.sh | bash
 - ZONE_ID:用于分发域的ZONE_ID 
 - CREATE_PATH:自定义PATH,更改即可使旧链接失效
 - 请求方式  domain_name;ip_address需要解析的域名和IP地址
-- curl -s -X POST https://API_DOMAIN/YOUR_CREATE_PATH -H "Content-Type: application/json" -d "{\"domain\":\"$domain_name\",\"ip\":\"$ip_address\"}"
-
+```
+curl -s -X POST https://API_DOMAIN/YOUR_CREATE_PATH -H "Content-Type: application/json" -d "{\"domain\":\"$domain_name\",\"ip\":\"$ip_address\"}"
+```
 
   ![dns](png/dns.png)
