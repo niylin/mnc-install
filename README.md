@@ -51,7 +51,7 @@ curl -fsSL https://link.wdqgn.eu.org/nopasswd/cloudflared-install.sh | bash
   ![tunnel](png/tunnel.png)
 
 - dns.js
-- API_TOKEN:创建特定域dns的权限的令牌,控制台手动生成.勾选dns权限即可
+- API_TOKEN:创建特定域dns的权限的令牌,控制台手动生成.
 - ZONE_ID:用于分发域的ZONE_ID 
 - CREATE_PATH:自定义PATH,更改即可使旧链接失效
 - 请求方式  domain_name;ip_address需要解析的域名和IP地址
