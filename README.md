@@ -56,7 +56,10 @@ curl -fsSL https://link.wdqgn.eu.org/nopasswd/cloudflared-install.sh | bash
 - CREATE_PATH:自定义PATH，更改即可使旧链接失效。
 - 请求方式  domain_name;ip_address需要解析的域名和IP地址。
 ```
-curl -s -X POST https://API_DOMAIN/YOUR_CREATE_PATH -H "Content-Type: application/json" -d "{\"domain\":\"$domain_name\"，\"ip\":\"$ip_address\"}"
+CDN_CHICE=  # 可选 开启 不开启 CDN. true false
+curl -s -X POST https://API_DOMAIN/YOUR_CREATE_PATH \
+        -H "Content-Type: application/json" \
+        -d "{\"domain\":\"$Certificate_name\",\"ip\":\"$ip_address\",\"enable_cdn\":$CDN_CHICE}"
 ```
 
   ![dns](png/dns.png)
