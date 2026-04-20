@@ -112,8 +112,8 @@ RE_proxy_name=${proxy_name/CF/RE}
 # 证书
 mkdir -p /etc/sing-box/cert
 
-wget -N -O /etc/sing-box/cert/$Certificate_name.crt "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"
-wget -N -O /etc/sing-box/cert/$Certificate_name.key "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key"
+wget -O /etc/sing-box/cert/$Certificate_name.crt "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"
+wget -O /etc/sing-box/cert/$Certificate_name.key "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key"
 
 mkdir -p /etc/sing-box
 
@@ -190,12 +190,12 @@ cat ~/link.yaml
 
 if command -v crontab &>/dev/null; then
 (crontab -l 2>/dev/null; \
-echo "0 0 * * 0 wget -N -O /etc/sing-box/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"; \
-echo "0 0 * * 0 wget -N -O /etc/sing-box/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key") | crontab -
+echo "0 0 * * 0 wget -O /etc/sing-box/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"; \
+echo "0 0 * * 0 wget -O /etc/sing-box/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key") | crontab -
 else
     echo "未检测到 crontab，请手动设置定时任务更新证书"
-    echo "wget -N -O /etc/sing-box/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"
-    echo "wget -N -O /etc/sing-box/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key"
+    echo "wget -O /etc/sing-box/cert/$Certificate_name.crt https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"
+    echo "wget -O /etc/sing-box/cert/$Certificate_name.key https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key"
 fi
 if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now sing-box
