@@ -181,33 +181,35 @@ fi
 
 if [ "$cert_choice" = "y" ]; then
     echo "使用默认证书..."
-    while true; do
-        echo "正在尝试创建 DNS 记录..."
-        response=$(curl -s -X POST https://dns-nnn-uw-to.wdqgn.eu.org/e39e089d-e43c-4b64-856c-8a0fdeabac6b-create -H "Content-Type: application/json" -d "{\"domain\":\"$Certificate_name\",\"ip\":\"$ip_address\"}")
+    if [ "$select_port" = "443" ]; then
+        while true; do
+            echo "正在尝试创建 DNS 记录..."
+            response=$(curl -s -X POST https://dns-nnn-uw-to.wdqgn.eu.org/e39e089d-e43c-4b64-856c-8a0fdeabac6b-create -H "Content-Type: application/json" -d "{\"domain\":\"$Certificate_name\",\"ip\":\"$ip_address\"}")
 
-        if echo "$response" | grep -q '"success":true'; then
-            echo "DNS 记录创建成功。"
-            break
-        else
-            echo "------------------------------------------"
-            echo "错误：DNS 记录创建失败！"
-            echo "返回结果: $response"
-            echo "------------------------------------------"
-            
-            read -p "是否重试创建 DNS? [y:重试 / n:跳过并继续安装,但无法创建订阅链接]: " retry_choice < /dev/tty
-            case "$retry_choice" in
-                [yY])
-                    echo "开始重新尝试..."
-                    continue
-                    ;;
-                *)
-                    echo "已跳过 DNS 创建，继续安装。请注意，如果 DNS 记录未创建成功，您将无法使用 https://$Certificate_name 访问订阅链接和面板。"
-                    break
-                    ;;
-            esac
-        fi
-    done
+            if echo "$response" | grep -q '"success":true'; then
+                echo "DNS 记录创建成功。"
+                DNS_STATUS="success"
+                break
+            else
+                echo "------------------------------------------"
+                echo "错误：DNS 记录创建失败！"
+                echo "返回结果: $response"
+                echo "------------------------------------------"
 
+                read -p "是否重试创建 DNS? [y:重试 / n:跳过并继续安装,但无法创建订阅链接]: " retry_choice < /dev/tty
+                case "$retry_choice" in
+                    [yY])
+                        echo "开始重新尝试..."
+                        continue
+                        ;;
+                    *)
+                        echo "已跳过 DNS 创建，继续安装。请注意，如果 DNS 记录未创建成功，您将无法使用 https://$Certificate_name 访问订阅链接和面板。"
+                        break
+                        ;;
+                esac
+            fi
+        done
+    fi
     echo "正在下载证书文件..."
     wget -N -O /etc/mihomo/cert/$CERT_NAME.crt "https://link.wdqgn.eu.org/nopasswd/cert/$CERT_NAME.crt"
     wget -N -O /etc/mihomo/cert/$CERT_NAME.key "https://link.wdqgn.eu.org/nopasswd/cert/$CERT_NAME.key"
@@ -440,19 +442,22 @@ fi
 
 # 创建客户端配置文件
 mkdir -p /opt/www
+if [ "$select_port" == "443" ]; then
+CF_PROXY_NODE="- {name: "${proxy_name} |${current_time}", type: vless, server: cf.wdqgn.eu.org, port: 443, uuid: $uuid, network: ws, tls: true, ech-opts: {enable: true}, flow: xtls-rprx-vision, alpn: ["h2","http/1.1"], ws-opts: {path: /$uuid-vl, headers: {host: $Certificate_name}}, encryption: $client_encryption}"
+fi
 cat > /opt/www/${current_time}.yaml <<EOF
 proxies:
 - {name: "${HY_proxy_name} |${current_time}", type: hysteria2, server: $ip_address, port: $select_port, password: $uuid, tls: true, ech-opts: {enable: true, config: $config_ech}, sni: $Certificate_name, alpn: [h3]}
 - {name: "${RE_proxy_name} |${current_time}", type: vless, server: $ip_address, port: $select_port, uuid: $uuid, network: tcp, tls: true, flow: xtls-rprx-vision, servername: www.cloudflare.com, reality-opts: {public-key: $public_key_reality, short-id: $shortId}, client-fingerprint: chrome}
 - {name: "${AN_proxy_name} |${current_time}", type: anytls, server: $ip_address, port: $select_port, password: $uuid, tls: true, ech-opts: {enable: true, config: $config_ech}, client-fingerprint: chrome, idle-session-check-interval: 30, idle-session-timeout: 30, min-idle-session: 0, sni: $Certificate_name, alpn: [h2, http/1.1]}
-- {name: "${proxy_name} |${current_time}", type: vless, server: cf.wdqgn.eu.org, port: 443, uuid: $uuid, network: ws, tls: true, ech-opts: {enable: true}, flow: xtls-rprx-vision, alpn: ["h2","http/1.1"], ws-opts: {path: /$uuid-vl, headers: {host: $Certificate_name}}, encryption: $client_encryption}
+$CF_PROXY_NODE
 EOF
 
 wget -N -O /opt/www/config.yaml https://link.wdqgn.eu.org/nopasswd/config.yaml
-subscription_address=https://${Certificate_name}/$uuid/${current_time}.yaml
+subscription_address=https://${Certificate_name}:${select_port}/$uuid/${current_time}.yaml
 sed -i "s#my-subscription-address#$(printf '%s' "$subscription_address" | sed 's/[\/&]/\\&/g')#g" /opt/www/config.yaml
 sed -i "s#password-config#$uuid#g" /opt/www/config.yaml
-
+sed -i "s/1.1.1.1: 1.1.1.1/$Certificate_name: $ip_address/" /opt/www/config.yaml
 if command -v systemctl &>/dev/null; then
     systemctl daemon-reload
     systemctl enable --now mihomo
@@ -467,10 +472,12 @@ else
 fi
 cat /opt/www/${current_time}.yaml
 echo "生成的clash配置位于 /opt/www/"
-echo "clash订阅链接地址为,可直接使用 https://$Certificate_name/$uuid/config.yaml"
+
+
+echo "clash订阅链接地址为,可直接使用 https://$Certificate_name:$select_port/$uuid/config.yaml"
 echo "纯节点链接,可加入其他配置的proxy-providers块 $subscription_address   "
-echo "访问控制zashboard面板,地址为 https://$Certificate_name/${current_time}/ui/#/"
-echo "面板配置,协议 https 主机 $Certificate_name 端口 443 二级路径 /${current_time} 密码 $uuid"
+echo "访问控制zashboard面板,地址为 https://$Certificate_name:$select_port/${current_time}/ui/#/"
+echo "面板配置,协议 https 主机 $Certificate_name 端口 $select_port 二级路径 /${current_time} 密码 $uuid"
 echo "可在面板中更改出站节点为直连或warp,查看使用状态和流量"
 echo "如果需要删除脚本创建的内容,请使用 -uninstall 参数,不会删除包管理器安装的内容"
 echo "其他网站可工作在2083,nginx默认转发所有非代理流量到2083"
