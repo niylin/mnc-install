@@ -179,18 +179,22 @@ elif [ "$ip_type_choice" == "2" ]; then
     fi
 fi
 
+if [[ "$select_port" == "443" ]]; then
+    CDN_CHICE=true
+    ECH_OPTS="ech-opts: {enable: true},"
+    VLESS_SERVER="cf.wdqgn.eu.org"
+else
+    CDN_CHICE=false
+    VLESS_SERVER=$ip_address
+fi
+
 if [ "$cert_choice" = "y" ]; then
     echo "使用默认证书..."
-    if [ "$select_port" = "443" ]; then
-        enable_cdn=true
-    else
-        enable_cdn=false
-    fi
     while true; do
         echo "正在尝试创建 DNS 记录..."
         response=$(curl -s -X POST https://dns-nnn-uw-to.wdqgn.eu.org/e39e089d-e43c-4b64-856c-8a0fdeabac6b-create \
         -H "Content-Type: application/json" \
-        -d "{\"domain\":\"$Certificate_name\",\"ip\":\"$ip_address\",\"enable_cdn\":$enable_cdn}")
+        -d "{\"domain\":\"$Certificate_name\",\"ip\":\"$ip_address\",\"enable_cdn\":$CDN_CHICE}")
         if echo "$response" | grep -q '"success":true'; then
             echo "DNS 记录创建成功。"
             break
@@ -449,7 +453,7 @@ proxies:
 - {name: "${HY_proxy_name} |${current_time}", type: hysteria2, server: $ip_address, port: $select_port, password: $uuid, tls: true, ech-opts: {enable: true, config: $config_ech}, sni: $Certificate_name, alpn: [h3]}
 - {name: "${RE_proxy_name} |${current_time}", type: vless, server: $ip_address, port: $select_port, uuid: $uuid, network: tcp, tls: true, flow: xtls-rprx-vision, servername: www.cloudflare.com, reality-opts: {public-key: $public_key_reality, short-id: $shortId}, client-fingerprint: chrome}
 - {name: "${AN_proxy_name} |${current_time}", type: anytls, server: $ip_address, port: $select_port, password: $uuid, tls: true, ech-opts: {enable: true, config: $config_ech}, client-fingerprint: chrome, idle-session-check-interval: 30, idle-session-timeout: 30, min-idle-session: 0, sni: $Certificate_name, alpn: [h2, http/1.1]}
-- {name: "${proxy_name} |${current_time}", type: vless, server: cf.wdqgn.eu.org, port: $select_port, uuid: $uuid, network: ws, tls: true, ech-opts: {enable: true}, flow: xtls-rprx-vision, alpn: ["h2","http/1.1"], ws-opts: {path: /$uuid-vl, headers: {host: $Certificate_name}}, encryption: $client_encryption}
+- {name: "${proxy_name} |${current_time}", type: vless, server: $VLESS_SERVER, port: $select_port, uuid: $uuid, network: ws, tls: true, $ECH_OPTS flow: xtls-rprx-vision, alpn: ["h2","http/1.1"], ws-opts: {path: /$uuid-vl, headers: {host: $Certificate_name}}, encryption: $client_encryption}
 EOF
 
 wget -N -O /opt/www/config.yaml https://link.wdqgn.eu.org/nopasswd/config.yaml
@@ -479,8 +483,6 @@ echo "如果需要删除脚本创建的内容,请使用 -uninstall 参数,不会
 echo "其他网站可工作在2083,nginx默认转发所有非代理流量到2083"
 if [[ "$select_port" == "443" ]]; then
     echo "非移动用户自行更换其他优选域名,cf.wdqgn.eu.org只测了移动"
-else
-    echo "自定义端口不支持cdn,请更换 ${proxy_name} |${current_time}节点server为 $ip_address 才能使用此节点"
 fi
 echo "如使用自定义证书,请将证书放入："
 echo "/etc/mihomo/cert/$Certificate_name.crt"
