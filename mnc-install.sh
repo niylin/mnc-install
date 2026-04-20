@@ -457,7 +457,6 @@ wget -N -O /opt/www/config.yaml https://link.wdqgn.eu.org/nopasswd/config.yaml
 subscription_address=https://${Certificate_name}:${select_port}/$uuid/${current_time}.yaml
 sed -i "s#my-subscription-address#$(printf '%s' "$subscription_address" | sed 's/[\/&]/\\&/g')#g" /opt/www/config.yaml
 sed -i "s#password-config#$uuid#g" /opt/www/config.yaml
-sed -i "s/1.1.1.1: 1.1.1.1/$Certificate_name: $ip_address/" /opt/www/config.yaml
 if command -v systemctl &>/dev/null; then
     systemctl daemon-reload
     systemctl enable --now mihomo
