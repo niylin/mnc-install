@@ -44,8 +44,8 @@ export default {
 
       // 添加 DNS 记录
       const dnsNames = [
-        `${timestamp}.${BASE_DOMAIN}`,
-        `${timestamp}-api.${BASE_DOMAIN}`
+        `${timestamp}.${env.BASE_DOMAIN}`,
+        `${timestamp}-api.${env.BASE_DOMAIN}`
       ];
 
       for (const name of dnsNames) {
