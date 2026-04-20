@@ -10,7 +10,11 @@ export default {
       return new Response("Missing Environment Variables", { status: 500 });
     }
 
-    const timestamp = Math.floor(Date.now() / 1000); 
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace('T', '-')
+      .slice(0, 15);
     const tunnelName = `tunnel-${timestamp}`;
 
     try {
