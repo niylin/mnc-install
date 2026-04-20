@@ -40,6 +40,7 @@ export default {
 
       const tunnelId = tunnelData.result.id;
       const tunnelDomain = `${tunnelId}.cfargotunnel.com`;
+      const BASE_DOMAIN = env.BASE_DOMAIN;
 
       // 添加 DNS 记录
       const dnsNames = [
