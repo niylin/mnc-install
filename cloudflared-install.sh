@@ -58,15 +58,9 @@ server_decryption=$(echo "$vless_x25519" | awk -F'"' '/\[Server\]/ {print $2}')
 client_encryption=$(echo "$vless_x25519" | awk -F'"' '/\[Client\]/ {print $2}')
 mkdir -p /etc/mihomo
 cat > /etc/mihomo/config.yaml <<EOF
-# external-controller: "127.0.0.1:9090"
-# external-ui: ui
-# secret: "$uuid"
-# external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
 ipv6: true
 log-level: info
 mode: rule
-dns:
-  enable: false
 listeners:
   - name: vless-ws-in
     type: vless

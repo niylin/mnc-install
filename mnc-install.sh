@@ -278,10 +278,6 @@ external-ui: ui
 secret: "$uuid"
 external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
 ipv6: true
-dns:
-  enable: true
-  nameserver:
-    - https://cloudflare-dns.com/dns-query
 listeners:
 - name: vless-ws-in
   type: vless
