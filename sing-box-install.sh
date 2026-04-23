@@ -2,32 +2,34 @@
 echo "欢迎使用 sing-box 一键安装脚本！"
 echo "本脚本将安装 sing-box，并配置 hysteria,reality"
 echo "生成的客户端配置中，ip地址将配置为当前服务器的出站IP，如果出站和入站IP不同，请手动修改客户端配置文件"
+read -p "使用IPv6输入y,默认IPv4: " ip_type_choice < /dev/tty
 while true; do
-    echo "请选择使用的IP地址类型："
-    echo "[1] IPv6"
-    echo "[2] IPv4"
-    read -p "请输入选项数字 [1/2]: " ip_type_choice < /dev/tty
-    case "$ip_type_choice" in
-        1|2) break ;;
-        *) echo "错误：无效选项 '$ip_type_choice'，请输入 1 或 2。" ;;
-    esac
-done
-
-while true; do
-    read -p "请输入 hysteria 端口 (例如 58999, reality将自动设为该值+10): " hysteria_port < /dev/tty
-    if [[ "$hysteria_port" =~ ^[0-9]+$ ]] && [ "$hysteria_port" -le 65533 ]; then
+    read -p "输入主入站端口,默认443: " select_port < /dev/tty
+    select_port=${select_port:-443}
+    if [[ "$select_port" =~ ^[0-9]+$ ]] && [ "$select_port" -ge 1 ] && [ "$select_port" -le 65535 ]; then
+        if ss -H -ltnu "( sport = :$select_port )" | grep -q .; then
+            echo "错误：端口 $select_port 已被占用，请重新输入。"
+            continue
+        fi
         break
     fi
-    echo "错误：请输入有效的端口号数字 (1-65533)。"
+    echo "错误：请输入有效的端口号数字 (1-65535)。"
+done
+while true; do
+    read -p "输入另外一个入站端口,默认2053): " select_port_1 < /dev/tty
+    select_port_1=${select_port_1:-2053}
+    if [[ "$select_port_1" =~ ^[0-9]+$ ]] && [ "$select_port_1" -ge 1 ] && [ "$select_port_1" -le 65535 ]; then
+        if ss -H -ltnu "( sport = :$select_port_1 )" | grep -q .; then
+            echo "错误：端口 $select_port_1 已被占用，请重新输入。"
+            continue
+        fi
+        break
+    fi
+    echo "错误：请输入有效的端口号数字 (1-65535)。"
 done
 
-reality_port=$((hysteria_port + 10))
-
-
-
-PKGS="curl wget jq python3"
-CPKGS="curl wget jq cron python3"
-
+PKGS="curl wget jq dcron python3"
+CPKGS="curl wget jq dcron python3"
 # 先安装依赖
 if command -v apt >/dev/null 2>&1; then
      apt update
@@ -47,35 +49,44 @@ else
     exit 1
 fi
 
-# 获取本机IP
-ipv4_regex='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
-ipv6_regex='^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$'
-
-if [ "$ip_type_choice" == "1" ]; then
-    ip_address=$(curl -6 -sL --max-time 5 https://ip-api.wdqgn.eu.org | jq -r '.ip // empty')
-    if [[ -z "$ip_address" || ! "$ip_address" =~ $ipv6_regex ]]; then
-        echo "提示：未能自动获取到有效的 IPv6 地址。"
-        until [[ "$ip_address" =~ $ipv6_regex ]]; do
-            read -p "请输入服务器的 IPv6 地址: " ip_address < /dev/tty
-            if [[ ! "$ip_address" =~ $ipv6_regex ]]; then
-                echo "格式错误，请检查后再输入。"
-            fi
-        done
-    fi
-
-elif [ "$ip_type_choice" == "2" ]; then
-    ip_address=$(curl -4 -sL --max-time 5 https://ip-api.wdqgn.eu.org | jq -r '.ip // empty')
-    if [[ -z "$ip_address" || ! "$ip_address" =~ $ipv4_regex ]]; then
-        echo "提示：未能自动获取到有效的 IPv4 地址。"
-        until [[ "$ip_address" =~ $ipv4_regex ]]; do
-            read -p "请输入服务器的 IPv4 地址: " ip_address < /dev/tty
-            if [[ ! "$ip_address" =~ $ipv4_regex ]]; then
-                echo "格式错误，请检查后再输入。"
-            fi
-        done
-    fi
+if [[ "$ip_type_choice" =~ ^[yY]$ ]]; then
+    ip_type_choice=6
+    ip_regex='^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$'  # 简单IPv6
+else
+    ip_type_choice=4
+    ip_regex='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
 fi
- 
+
+while true; do
+    trace_content=$(curl -${ip_type_choice} -s --max-time 5 https://cloudflare.com/cdn-cgi/trace)
+    ip_address=$(echo "$trace_content" | grep '^ip=' | cut -d= -f2)
+    if [[ ! "$ip_address" =~ $ip_regex ]]; then
+        echo "获取到的IP不合法：$ip_address"
+        read -p " y 重试, e 手动输入,其他退出: " retry < /dev/tty
+        if [[ "$retry" =~ ^[yY]$ ]]; then
+            continue
+        elif [[ "$retry" =~ ^[eE]$ ]]; then
+            read -p "输入IP地址: " ip_address < /dev/tty
+        else
+            exit 1
+        fi
+    fi
+    countryCode=$(echo "$trace_content" | grep '^loc=' | cut -d= -f2)
+    colo_code=$(echo "$trace_content" | grep '^colo=' | cut -d= -f2)
+    echo "检测到的IP地址：$ip_address"
+    flag=$(python3 -c "print(''.join(chr(127397 + ord(c)) for c in '$countryCode'))" 2>/dev/null || echo "🌐")
+    echo "检测到的地理位置：$flag $countryCode ($colo_code)"
+    proxy_name="${flag}${colo_code} CF"
+    HY_proxy_name=${proxy_name/CF/HY}
+    RE_proxy_name=${proxy_name/CF/RE}
+    TU_proxy_name=${proxy_name/CF/TU}
+    AN_proxy_name=${proxy_name/CF/AN}
+    break
+done
+
+current_time=$(TZ=UTC-8 date +"%Y%m%d-%H%M")
+Certificate_name="nnn.uw.to"
+
 # 检查 sing-box 是否在系统路径中
 if command -v sing-box >/dev/null 2>&1; then
     echo "--------------------------------"
@@ -87,45 +98,91 @@ else
     curl -fsSL https://link.wdqgn.eu.org/nopasswd/pkg/sing-box-pkg.sh | sh
 fi
 
-current_time=$(TZ=UTC-8 date +"%Y%m%d-%H%M")
-Certificate_name="nnn.uw.to"
+# 证书
+mkdir -p /etc/sing-box/cert
+wget -O /etc/sing-box/cert/$Certificate_name.crt "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"
+wget -O /etc/sing-box/cert/$Certificate_name.key "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key"
 
 # 生成密钥
 shortId=$(sing-box generate rand 8 --hex)
 output=$(sing-box generate reality-keypair)
-
 private_key=$(echo "$output" | awk '/PrivateKey:/ {print $2}')
 public_key=$(echo "$output" | awk '/PublicKey:/ {print $2}')
 uuid=$(cat /proc/sys/kernel/random/uuid)
 
+output_ech=$(sing-box generate ech-keypair cloudflare-ech.com)
+config_ech=$(echo "$output_ech" | sed -n '/BEGIN ECH CONFIGS/,/END ECH CONFIGS/p' | grep -v "ECH CONFIGS")
+key_ech=$(echo "$output_ech" | sed -n '/BEGIN ECH KEYS/,/END ECH KEYS/p')
+echo "$key_ech" | sudo tee /etc/sing-box/cert/ech.pem > /dev/null
 
-# 生成节点名
-name_response=$(curl -s --max-time 5 http://ip-api.com/json/ || echo "{}")
-countryCode=$(echo "$name_response" | jq -r '.countryCode // empty')
-cityinfo=$(echo "$name_response" | jq -r '.city // "Unknown"')
-flag=$(python3 -c "print(''.join(chr(127397 + ord(c)) for c in '$countryCode'))" 2>/dev/null || echo "🌐")
-
-proxy_name="${flag}${cityinfo} CF"
-HY_proxy_name=${proxy_name/CF/HY}
-RE_proxy_name=${proxy_name/CF/RE}
-
-# 证书
-mkdir -p /etc/sing-box/cert
-
-wget -O /etc/sing-box/cert/$Certificate_name.crt "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.crt"
-wget -O /etc/sing-box/cert/$Certificate_name.key "https://link.wdqgn.eu.org/nopasswd/cert/$Certificate_name.key"
-
-mkdir -p /etc/sing-box
 
 cat > /etc/sing-box/config.json <<EOF
 {
   "inbounds": [
     {
+      "type": "tuic",
+      "tag": "tuic-in",
+      "listen": "::",
+      "listen_port": $select_port_1,
+      "users": [
+        {
+          "name": "$uuid",
+          "uuid": "$uuid",
+          "password": "$uuid"
+        }
+      ],
+      "congestion_control": "cubic",
+      "auth_timeout": "3s",
+      "zero_rtt_handshake": false,
+      "heartbeat": "10s",
+      "tls": {
+        "enabled": true,
+        "alpn": [
+          "h3"
+        ],
+        "certificate_path": "/etc/sing-box/cert/$Certificate_name.crt",
+        "key_path": "/etc/sing-box/cert/$Certificate_name.key",
+        "ech": {
+          "enabled": true,
+          "key_path": "/etc/sing-box/cert/ech.pem"
+        }
+      }
+    },
+    {
+      "type": "anytls",
+      "tag": "anytls-in",
+      "listen": "::",
+      "listen_port": $select_port_1,
+      "users": [
+        {
+          "name": "$uuid",
+          "password": "$uuid"
+        }
+      ],
+      "padding_scheme": [],
+      "tls": {
+        "enabled": true,
+        "alpn": [
+          "h2",
+          "http/1.1"
+        ],
+        "certificate_path": "/etc/sing-box/cert/$Certificate_name.crt",
+        "key_path": "/etc/sing-box/cert/$Certificate_name.key",
+        "ech": {
+          "enabled": true,
+          "key_path": "/etc/sing-box/cert/ech.pem"
+        }
+      }
+    },
+    {
       "type": "vless",
       "listen": "::",
-      "listen_port": $reality_port,
+      "listen_port": $select_port,
       "users": [
-        { "uuid": "$uuid", "flow": "xtls-rprx-vision" }
+        {
+          "uuid": "$uuid",
+          "flow": "xtls-rprx-vision"
+        }
       ],
       "tls": {
         "enabled": true,
@@ -137,56 +194,95 @@ cat > /etc/sing-box/config.json <<EOF
             "server_port": 443
           },
           "private_key": "$private_key",
-          "short_id": ["$shortId"]
+          "short_id": [
+            "$shortId"
+          ]
         }
       }
     },
     {
       "type": "hysteria2",
       "listen": "::",
-      "listen_port": $hysteria_port,
+      "listen_port": $select_port,
       "users": [
-        { "password": "$uuid" }
+        {
+          "password": "$uuid"
+        }
       ],
       "tls": {
         "enabled": true,
-        "alpn": ["h3"],
+        "alpn": [
+          "h3"
+        ],
         "certificate_path": "/etc/sing-box/cert/$Certificate_name.crt",
-        "key_path": "/etc/sing-box/cert/$Certificate_name.key"
+        "key_path": "/etc/sing-box/cert/$Certificate_name.key",
+        "ech": {
+          "enabled": true,
+          "key_path": "/etc/sing-box/cert/ech.pem"
+        }
       }
     }
   ],
   "outbounds": [
-    { "type": "direct" }
+    {
+      "type": "direct"
+    }
   ]
 }
 EOF
 
 cat > ~/link.yaml <<EOF
-- name: ${HY_proxy_name} |${current_time}
+- name: ${TU_proxy_name}|${current_time}
+  server: $ip_address
+  port: $select_port_1
+  type: tuic
+  uuid: $uuid
+  password: $uuid
+  alpn: [h3]
+  reduce-rtt: true
+  request-timeout: 8000
+  udp-relay-mode: native
+  congestion-controller: bbr
+  max-udp-relay-packet-size: 1500
+  fast-open: true
+  max-open-streams: 20
+  tls: true
+  sni: ${Certificate_name}
+  ech-opts: {enable: true, config: $config_ech}
+- name: ${AN_proxy_name}|${current_time}
+  type: anytls
+  server: $ip_address
+  port: $select_port_1
+  password: $uuid
+  tls: true
+  ech-opts: {enable: true, config: $config_ech}
+  idle-session-check-interval: 30
+  idle-session-timeout: 30
+  min-idle-session: 0
+  sni: ${Certificate_name}
+  alpn: [h2, http/1.1]
+- name: ${HY_proxy_name}|${current_time}
   type: hysteria2
   server: $ip_address
-  port: $hysteria_port
+  port: $select_port
   password: $uuid
-  sni: $Certificate_name
-  alpn:
-    - h3
-- name: ${RE_proxy_name} |${current_time}
+  sni: ${Certificate_name}
+  alpn: [ h3 ]
+  ech-opts: {enable: true, config: $config_ech}
+  tls: true
+- name: ${RE_proxy_name}|${current_time}
   type: vless
   server: $ip_address
-  port: $reality_port
+  port: $select_port
   uuid: $uuid
   network: tcp
   tls: true
-  udp: true
   flow: xtls-rprx-vision
   servername: www.microsoft.com
   reality-opts:
     public-key: $public_key
     short-id: $shortId
-  client-fingerprint: chrome
 EOF
-cat ~/link.yaml
 
 if command -v crontab &>/dev/null; then
 (crontab -l 2>/dev/null; \
@@ -204,3 +300,4 @@ else
     rc-update add sing-box default
     rc-service sing-box restart
 fi
+cat ~/link.yaml

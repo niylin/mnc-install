@@ -149,7 +149,8 @@ else
     ip_regex='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
 fi
 while true; do
-    ip_address=$(curl -${ip_type_choice} -s --max-time 5 https://cloudflare.com/cdn-cgi/trace | grep '^ip=' | cut -d= -f2)
+    trace_content=$(curl -${ip_type_choice} -s --max-time 5 https://cloudflare.com/cdn-cgi/trace)
+    ip_address=$(echo "$trace_content" | grep '^ip=' | cut -d= -f2)
     if [[ ! "$ip_address" =~ $ip_regex ]]; then
         echo "获取到的IP不合法：$ip_address"
         read -p " y 重试, e 手动输入,其他退出: " retry < /dev/tty
@@ -161,17 +162,16 @@ while true; do
             exit 1
         fi
     fi
+    countryCode=$(echo "$trace_content" | grep '^loc=' | cut -d= -f2)
+    colo_code=$(echo "$trace_content" | grep '^colo=' | cut -d= -f2)
     echo "检测到的IP地址：$ip_address"
-    geo_json=$(curl -s --max-time 5 "https://ipapi.co/${ip_address}/json" || echo "{}")
-    countryCode=$(echo "$geo_json" | jq -r '.country_code // empty')
-    cityinfo=$(echo "$geo_json" | jq -r '.city // "Unknown"')
     flag=$(python3 -c "print(''.join(chr(127397 + ord(c)) for c in '$countryCode'))" 2>/dev/null || echo "🌐")
-    echo "检测到的地理位置：$flag $cityinfo"
-    proxy_name="${flag}${cityinfo} CF"
+    echo "检测到的地理位置：$flag $countryCode ($colo_code)"
+    proxy_name="${flag}${colo_code} CF"
     HY_proxy_name=${proxy_name/CF/HY}
     RE_proxy_name=${proxy_name/CF/RE}
-    AN_proxy_name=${proxy_name/CF/AN}
     TU_proxy_name=${proxy_name/CF/TU}
+    AN_proxy_name=${proxy_name/CF/AN}
     MR_proxy_name=${proxy_name/CF/MR}
     TT_proxy_name=${proxy_name/CF/TT}
     break

@@ -6,7 +6,7 @@
 
 - **`mnc-install.sh`**：一键安装 mihomo，并配置 `hysteria2`， `vless-reality`， `anytls`， `vless-ws` , `tuic-v5`, `mieru`, `trusrtunnel` ,默认使用443和2053。
 - 支持使用自定义证书或内置默认证书，创建订阅链接。功能全面，开启ech。
-- **`sing-box-install.sh`**：一键安装 sing-box，并自动配置 `reality` 和 `hysteria2` 服务，配置要求低。可在64mb内存的设备上尝试。
+- **`sing-box-install.sh`**：一键安装 sing-box，并自动配置 `reality` 和 `hysteria2` 服务，配置要求低。可在64mb内存的设备上使用。
 - **`cloudflared-install.sh`**：适用于没有入站端口（如被防火墙拦截或无公网 IP）的vps，通过 Cloudflare Tunnel 建立隧道。
 
 ## 使用说明
