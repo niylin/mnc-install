@@ -405,8 +405,8 @@ stream {
 }
 # END MIHOMO_NGINX_STREAM
 "
-echo "$APPEND_CONTENT" | tee -a "$NGINX_FILE" > /dev/null
 cp "$NGINX_FILE" "$NGINX_FILE.bak.$(date +%s)"
+echo "$APPEND_CONTENT" | tee -a "$NGINX_FILE" > /dev/null
 sed -i 's/^[[:space:]]*include[[:space:]]*\/etc\/nginx\/conf\.d\/\*\.conf[[:space:]]*;/# &/' "$NGINX_FILE"
 sed -i '/http[[:space:]]*{/a\    include /etc/nginx/conf.d/*.conf;' "$NGINX_FILE"
 mv /etc/nginx/conf.d/stream.conf /etc/nginx/conf.d/stream.conf.bak 2>/dev/null
