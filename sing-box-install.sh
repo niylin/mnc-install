@@ -27,13 +27,13 @@ while true; do
     fi
     echo "错误：请输入有效的端口号数字 (1-65535)。"
 done
-
-PKGS="curl wget jq dcron python3"
-CPKGS="curl wget jq dcron python3"
-# 先安装依赖
+PKGS="curl wget jq cronie  python3"
+APT_PKGS="curl wget jq cron python3"
+APK_PKGS="curl wget jq dcron python3"
+# 安装依赖
 if command -v apt >/dev/null 2>&1; then
      apt update
-     apt install -y $CPKGS
+     apt install -y $APT_PKGS
 elif command -v dnf >/dev/null 2>&1; then
      dnf install -y $PKGS
 elif command -v yum >/dev/null 2>&1; then
@@ -43,7 +43,7 @@ elif command -v pacman >/dev/null 2>&1; then
 elif command -v zypper >/dev/null 2>&1; then
      zypper install -y $PKGS
 elif command -v apk >/dev/null 2>&1; then
-     apk add $PKGS
+     apk add $APK_PKGS
 else
     echo "不支持的包管理器"
     exit 1
