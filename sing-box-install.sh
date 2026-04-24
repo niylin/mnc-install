@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 echo "欢迎使用 sing-box 一键安装脚本！"
-echo "本脚本将安装 sing-box，并配置 hysteria,reality"
+echo "本脚本将安装 sing-box，并配置 hysteria,reality,tuic,anytls"
 echo "生成的客户端配置中，ip地址将配置为当前服务器的出站IP，如果出站和入站IP不同，请手动修改客户端配置文件"
 read -p "使用IPv6输入y,默认IPv4: " ip_type_choice < /dev/tty
 while true; do

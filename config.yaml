@@ -39,9 +39,6 @@ sniffer:
   force-domain:
     - "cloudflare-ech.com"
     - "edge.microsoft.com"
-    - "google-ech.net"
-    - "defiant.cloudflare.com"
-    - "+.cloudflare-ech.com"
   skip-domain:
     - "Mijia Cloud"
 dns:
@@ -68,89 +65,38 @@ dns:
     - https://cloudflare-dns.com/dns-query
     - 223.5.5.5
 proxy-providers:
-  proxies_un1:
+  mnc-instal:
     type: http
     url: my-subscription-address
     interval: 3600
     health-check:
       enable: true
-      url: http://1.0.0.1
+      url: https://cp.cloudflare.com
       interval: 1800
 proxy-groups:
-  - name: 🗽NetSelect
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - 🔥AutoSelect
-      - DIRECT
-    url: http://1.0.0.1
-  - name: 🌀google
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - 🗽NetSelect
-    url: http://1.0.0.1
-  - name: ⌨️openai
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - 🗽NetSelect
-    url: http://chatgpt.com/cdn-cgi/trace
-  - name: 🛹others
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - 🗽NetSelect
-      - ➡️全球直连
-  - name: 🎮games
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - ➡️全球直连
-  - name: 📺YouTube
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - 🗽NetSelect
-  - name: 📱telegram
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - 🗽NetSelect
-  - name: 🗃OneDrive
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - 🗽NetSelect
-      - ➡️全球直连
-  - name: 🏴‍☠️全球拦截
-    type: select
-    proxies:
-      - REJECT
-      - 🗽NetSelect
-      - 🔥AutoSelect
-      - ➡️全球直连
-  - name: ➡️全球直连
-    type: select
-    use:
-      - proxies_un1
-    proxies:
-      - DIRECT
-      - 🗽NetSelect
-  - name: 🔥AutoSelect
-    type: url-test
-    url: http://1.0.0.1
-    interval: "3000"
-    use:
-      - proxies_un1
+  - {name: 🗽SELECT, type: select, include-all-providers: true, proxies: [🔥AUTO, DIRECT, 🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
+  - {name: 🛹OTHER, type: select, include-all-providers: true, proxies: [🗽SELECT, ➡️全球直连,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
+  - {name: 🌀Google, type: select, include-all-providers: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]} 
+  - {name: ⌨️OpenAI, type: select, include-all-providers: true, proxies: [🗽SELECT,🇺🇸US, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
+  - {name: 📺YouTube, type: select, include-all-providers: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
+  - {name: 📱Telegram, type: select, include-all-providers: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
+  - {name: 🗃OneDrive, type: select, include-all-providers: true,  proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
+  - {name: 🎮Games, type: select, include-all-providers: true,  proxies: [🗽SELECT, ➡️全球直连, 🇭🇰HK, ]}
+  - {name: ➡️全球直连, type: select, proxies: [DIRECT, 🗽SELECT]}
+  - {name: 🏴‍☠️全球拦截, type: select, proxies: [REJECT, 🗽SELECT, ➡️全球直连]}
+  - {name: 🇭🇰HK, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇭🇰|HK|香港"}
+  - {name: 🇹🇼TW, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇹🇼|TW|台湾"}
+  - {name: 🇸🇬SG, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇸🇬|SG|新加坡"}
+  - {name: 🇯🇵JP, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇯🇵|JP|日本"}
+  - {name: 🇰🇷KR, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇰🇷|KR|韩国"}
+  - {name: 🇺🇸US, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇺🇸|US|美国"}
+  - {name: 🇬🇧UK, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇬🇧|UK|英国"}
+  - {name: 🇩🇪DE, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇩🇪|DE|德国"}
+  - {name: 🇫🇷FR, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇫🇷|FR|法国"}
+  - {name: 🇨🇦CA, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇨🇦|CA|加拿大"}
+  - {name: 🇦🇺AU, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "3000", timeout: "1000", filter: "🇦🇺|AU|澳大利亚"}
+  - {name: 🔥AUTO, type: url-test, url: https://cp.cloudflare.com, include-all-providers: true, interval: "900", timeout: "500"}
+
 rule-providers:
   lancidr:
     type: http
@@ -170,52 +116,52 @@ rules:
   - GEOSITE,category-ads-all,🏴‍☠️全球拦截
   - PROCESS-NAME,sshd,➡️全球直连
   - PROCESS-NAME,ssh,➡️全球直连
-  - DOMAIN-SUFFIX,recaptcha.net,🌀google
-  - DOMAIN-SUFFIX,googletagmanager.com,🌀google
-  - DOMAIN-SUFFIX,services.googleapis.cn,🌀google
-  - GEOSITE,openai,⌨️openai
+  - DOMAIN-SUFFIX,recaptcha.net,🌀Google
+  - DOMAIN-SUFFIX,googletagmanager.com,🌀Google
+  - DOMAIN-SUFFIX,services.googleapis.cn,🌀Google
+  - GEOSITE,openai,⌨️OpenAI
   - GEOSITE,onedrive,🗃OneDrive
   - GEOSITE,mega,🗃OneDrive
   - GEOSITE,microsoft,🗃OneDrive
-  - GEOIP,telegram,📱telegram
-  - GEOSITE,telegram,📱telegram
-  - GEOSITE,discord,📱telegram
-  - GEOSITE,line,📱telegram
-  - GEOSITE,whatsapp,📱telegram
+  - GEOIP,telegram,📱Telegram
+  - GEOSITE,telegram,📱Telegram
+  - GEOSITE,discord,📱Telegram
+  - GEOSITE,line,📱Telegram
+  - GEOSITE,whatsapp,📱Telegram
   - GEOSITE,tiktok,📺YouTube
   - GEOSITE,youtube,📺YouTube
   - GEOSITE,netflix,📺YouTube
   - GEOSITE,disney,📺YouTube
   - GEOSITE,hbo,📺YouTube
   - GEOSITE,spotify,📺YouTube
-  - GEOSITE,google,🌀google
-  - GEOSITE,oracle,🌀google
-  - GEOSITE,github,🌀google
-  - GEOSITE,gitlab,🌀google
-  - GEOSITE,reddit,🌀google
-  - GEOSITE,twitter,🌀google
-  - GEOSITE,cloudflare,🌀google
-  - GEOSITE,binance,🌀google
-  - GEOSITE,amazon,🗽NetSelect
-  - GEOSITE,meta,🗽NetSelect
-  - GEOSITE,apple,🗽NetSelect
-  - GEOSITE,speedtest,🗽NetSelect
-  - GEOSITE,docker,🗽NetSelect
-  - GEOSITE,steam,🎮games
-  - GEOSITE,epicgames,🎮games
-  - GEOSITE,blizzard,🎮games
-  - GEOSITE,ea,🎮games
-  - GEOSITE,ubisoft,🎮games
-  - GEOSITE,nintendo,🎮games
-  - GEOSITE,playstation,🎮games
-  - GEOSITE,xbox,🎮games
-  - GEOSITE,riot,🎮games
+  - GEOSITE,google,🌀Google
+  - GEOSITE,oracle,🌀Google
+  - GEOSITE,github,🌀Google
+  - GEOSITE,gitlab,🌀Google
+  - GEOSITE,reddit,🌀Google
+  - GEOSITE,twitter,🌀Google
+  - GEOSITE,cloudflare,🌀Google
+  - GEOSITE,binance,🌀Google
+  - GEOSITE,amazon,🗽SELECT
+  - GEOSITE,meta,🗽SELECT
+  - GEOSITE,apple,🗽SELECT
+  - GEOSITE,speedtest,🗽SELECT
+  - GEOSITE,docker,🗽SELECT
+  - GEOSITE,steam,🎮Games
+  - GEOSITE,epicgames,🎮Games
+  - GEOSITE,blizzard,🎮Games
+  - GEOSITE,ea,🎮Games
+  - GEOSITE,ubisoft,🎮Games
+  - GEOSITE,nintendo,🎮Games
+  - GEOSITE,playstation,🎮Games
+  - GEOSITE,xbox,🎮Games
+  - GEOSITE,riot,🎮Games
   - GEOSITE,bytedance,➡️全球直连
   - GEOSITE,bilibili,➡️全球直连
   - GEOSITE,sina,➡️全球直连
   - GEOSITE,steam@cn,➡️全球直连
   - RULE-SET,applications,➡️全球直连
-  - GEOSITE,gfw,🗽NetSelect
+  - GEOSITE,gfw,🗽SELECT
   - GEOSITE,cn,➡️全球直连
   - GEOIP,CN,➡️全球直连
-  - MATCH,🛹others
+  - MATCH,🛹OTHER
