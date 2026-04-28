@@ -478,7 +478,7 @@ EOF
 
 # 创建warp出站
 if [[ "$warp_choice" =~ ^[yY]$ ]]; then
-    MASQUE_API_URL="https://warp-register.wdqgn.eu.org/reg?type=masque&format=mihomo"
+    MASQUE_API_URL="https://warp-register.wdqgn.eu.org/masque?format=mihomo"
 
     max_retry=6
     base_sleep=2
