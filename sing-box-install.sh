@@ -254,6 +254,7 @@ cat > ~/link.yaml <<EOF
   server: $ip_address
   port: $select_port_1
   password: $uuid
+  client-fingerprint: chrome
   tls: true
   ech-opts: {enable: true, config: $config_ech}
   idle-session-check-interval: 30
@@ -275,6 +276,7 @@ cat > ~/link.yaml <<EOF
   server: $ip_address
   port: $select_port
   uuid: $uuid
+  client-fingerprint: chrome
   network: tcp
   tls: true
   flow: xtls-rprx-vision

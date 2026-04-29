@@ -16,7 +16,6 @@ profile:
   store-fake-ip: false
 unified-delay: true
 tcp-concurrent: true
-global-client-fingerprint: chrome
 geodata-mode: true
 geox-url:
   geoip: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"

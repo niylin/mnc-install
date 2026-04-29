@@ -64,6 +64,7 @@ cat <<EOF
   server: cf.wdqgn.eu.org
   port: 443
   uuid: $uuid
+  client-fingerprint: chrome
   network: ws
   tls: true
   ech-opts: {enable: true}
@@ -529,6 +530,7 @@ proxies:
   server: $ip_address
   port: $select_port
   uuid: $uuid
+  client-fingerprint: chrome
   network: tcp
   tls: true
   flow: xtls-rprx-vision
@@ -539,6 +541,7 @@ proxies:
   server: $ip_address
   port: $select_port
   password: $uuid
+  client-fingerprint: chrome
   tls: true
   ech-opts: {enable: true, config: $config_ech}
   idle-session-check-interval: 30
@@ -578,6 +581,7 @@ $VLESS_WS_CONFIG
   port: $select_port
   username: $uuid
   password: $uuid
+  client-fingerprint: chrome
   health-check: true
   ech-opts: {enable: true, config: $config_ech_1}
   sni: $Certificate_name

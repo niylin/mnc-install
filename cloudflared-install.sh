@@ -84,7 +84,7 @@ current_time=$(TZ=UTC-8 date +"%Y%m%d-%H%M")
 mkdir -p /opt/www
 cat > /opt/www/${current_time}.yaml <<EOF
 proxies:
-- {name: "$proxy_name", type: vless, server: cf.wdqgn.eu.org, port: 443, uuid: $uuid, network: ws, tls: true, ech-opts: {enable: true}, flow: xtls-rprx-vision, alpn: ["h2","http/1.1"], ws-opts: {path: /$uuid-vl, headers: {host: $domain_name}}, encryption: $client_encryption}
+- {name: "$proxy_name", type: vless, server: cf.wdqgn.eu.org, port: 443, uuid: $uuid, client-fingerprint: chrome, network: ws, tls: true, ech-opts: {enable: true}, flow: xtls-rprx-vision, alpn: ["h2","http/1.1"], ws-opts: {path: /$uuid-vl, headers: {host: $domain_name}}, encryption: $client_encryption}
 EOF
 
 wget -O /opt/www/config.yaml https://link.wdqgn.eu.org/nopasswd/config.yaml
