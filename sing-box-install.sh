@@ -2,7 +2,8 @@
 echo "欢迎使用 sing-box 一键安装脚本！"
 echo "本脚本将安装 sing-box，并配置 hysteria,reality,tuic,anytls"
 echo "生成的客户端配置中，ip地址将配置为当前服务器的出站IP，如果出站和入站IP不同，请手动修改客户端配置文件"
-read -p "使用IPv6输入y,默认IPv4: " ip_type_choice < /dev/tty
+read -p "使用IPv6输入6,默认IPv4: " ip_type_choice < /dev/tty
+    ip_type_choice=${ip_type_choice:-4}
 while true; do
     read -p "输入主入站端口,默认443: " select_port < /dev/tty
     select_port=${select_port:-443}
@@ -49,18 +50,21 @@ else
     exit 1
 fi
 
-if [[ "$ip_type_choice" =~ ^[yY]$ ]]; then
-    ip_type_choice=6
-    ip_regex='^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$'  # 简单IPv6
-else
-    ip_type_choice=4
-    ip_regex='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
-fi
-
+# 获取IP地址和地理位置
 while true; do
     trace_content=$(curl -${ip_type_choice} -s --max-time 5 https://cloudflare.com/cdn-cgi/trace)
     ip_address=$(echo "$trace_content" | grep '^ip=' | cut -d= -f2)
-    if [[ ! "$ip_address" =~ $ip_regex ]]; then
+    ip_valid=$(python3 - <<EOF
+import ipaddress
+try:
+    ipaddress.ip_address("$ip_address")
+    print(1)
+except:
+    print(0)
+EOF
+)
+
+    if [[ "$ip_valid" != "1" ]]; then
         echo "获取到的IP不合法：$ip_address"
         read -p " y 重试, e 手动输入,其他退出: " retry < /dev/tty
         if [[ "$retry" =~ ^[yY]$ ]]; then
@@ -71,16 +75,24 @@ while true; do
             exit 1
         fi
     fi
+
     countryCode=$(echo "$trace_content" | grep '^loc=' | cut -d= -f2)
     colo_code=$(echo "$trace_content" | grep '^colo=' | cut -d= -f2)
+
     echo "检测到的IP地址：$ip_address"
+
     flag=$(python3 -c "print(''.join(chr(127397 + ord(c)) for c in '$countryCode'))" 2>/dev/null || echo "🌐")
+
     echo "检测到的地理位置：$flag $countryCode ($colo_code)"
-    proxy_name="${flag}${colo_code} CF"
+
+    proxy_name="${flag} ${colo_code} CF"
     HY_proxy_name=${proxy_name/CF/HY}
     RE_proxy_name=${proxy_name/CF/RE}
     TU_proxy_name=${proxy_name/CF/TU}
     AN_proxy_name=${proxy_name/CF/AN}
+    MR_proxy_name=${proxy_name/CF/MR}
+    TT_proxy_name=${proxy_name/CF/TT}
+
     break
 done
 
