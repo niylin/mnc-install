@@ -123,10 +123,9 @@ public_key=$(echo "$output" | awk '/PublicKey:/ {print $2}')
 uuid=$(cat /proc/sys/kernel/random/uuid)
 
 output_ech=$(sing-box generate ech-keypair cloudflare-ech.com)
-config_ech=$(echo "$output_ech" | sed -n '/BEGIN ECH CONFIGS/,/END ECH CONFIGS/p' | grep -v "ECH CONFIGS")
+config_ech=$(echo "$output_ech" | sed -n '/BEGIN ECH CONFIGS/,/END ECH CONFIGS/p' | grep -v "ECH CONFIGS" | tr -d '\n\r')
 key_ech=$(echo "$output_ech" | sed -n '/BEGIN ECH KEYS/,/END ECH KEYS/p')
-echo "$key_ech" | sudo tee /etc/sing-box/cert/ech.pem > /dev/null
-
+echo "$key_ech" | tee /etc/sing-box/cert/ech.pem > /dev/null
 
 cat > /etc/sing-box/config.json <<EOF
 {
