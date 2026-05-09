@@ -387,7 +387,7 @@ $key_ech_1
   down: 300
   certificate: /etc/mihomo/cert/$CERT_NAME.crt
   private-key: /etc/mihomo/cert/$CERT_NAME.key
-  masquerade: "https://cloudflare-ech.com:443"
+  masquerade: "file:///opt/www/convertio"
   ech-key: |
 $key_ech
 proxy-groups:
@@ -617,7 +617,7 @@ proxy-providers: 配置
 ${current_time}: {type: http, url: ${subscription_address}, health-check: {enable: true, url: https://cp.cloudflare.com}}
 
 服务端zashboard面板,地址为 
-https://$Certificate_name:$select_port/${current_time}/ui/#/setup?hostname=$Certificate_name&port=$select_port&secondaryPath=/${current_time}&secret=$uuid
+https://board.zash.run.place/#/setup?hostname=$Certificate_name&port=$select_port&secondaryPath=/${current_time}&secret=$uuid
 可在面板中更改出站节点为直连或warp,查看使用状态和流量
 如果需要删除脚本创建的内容,使用 -uninstall 参数,不会删除包管理器安装的内容
 添加其他站点, default  9999
