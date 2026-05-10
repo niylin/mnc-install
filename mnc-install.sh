@@ -143,8 +143,8 @@ if [[ "$cert_choice" =~ ^[yY]$ ]]; then
     echo "/etc/mihomo/cert/$Certificate_name.crt"
     echo "/etc/mihomo/cert/$Certificate_name.key"
 else
-    Certificate_name="${current_time}.nnn.uw.to"
-    CERT_NAME="nnn.uw.to"
+    Certificate_name="${current_time}.nauk.eu.cc"
+    CERT_NAME="nauk.eu.cc"
 fi
 stop_services
 # 依赖安装

@@ -97,7 +97,7 @@ EOF
 done
 
 current_time=$(TZ=UTC-8 date +"%Y%m%d-%H%M")
-Certificate_name="nnn.uw.to"
+Certificate_name="nauk.eu.cc"
 
 # 检查 sing-box 是否在系统路径中
 if command -v sing-box >/dev/null 2>&1; then
