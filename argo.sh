@@ -98,6 +98,6 @@ vless://${uuid}@${domain_name}:443?encryption=${client_encryption}&security=tls&
 
 EOF
 cat $HOME/argo.yaml
-echo "生成的 clash 配置位于 $HOME/argo.yaml"
+echo "生成的配置位于 $HOME/argo.yaml"
 echo "脚本执行完成，cloudflared 隧道已在后台运行，域名为 $domain_name"
 echo "临时隧道仅供测试使用,如需稳定连接,请使用个人账户创建隧道至http://127.0.0.1:54999"
