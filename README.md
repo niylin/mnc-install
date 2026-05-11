@@ -31,7 +31,7 @@ curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/sing-box-
 curl -fsSL https://link.wdqgn.eu.org/nopasswd/sing-box-install.sh | bash
 ```
 
-### 3. 一键安装 cloudflared (隧道模式)
+### 3. cloudflared 临时隧道
 适用于无入站环境。
 ```bash
 curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/argo.sh | bash
