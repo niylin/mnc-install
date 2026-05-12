@@ -80,6 +80,11 @@ proxy-groups:
   - {name: 📺YouTube, type: select, include-all-providers: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
   - {name: 📱Telegram, type: select, include-all-providers: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
   - {name: 🗃OneDrive, type: select, include-all-providers: true,  proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
+  - {name: 📈speedtest, type: select, include-all-providers: true,  proxies: [DIRECT, 🗽SELECT ]}
+  - {name: 🎵Spotify, type: select, include-all-providers: true,  proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
+  - {name: 🧱墙内常用, type: select, include-all-providers: true,  proxies: [DIRECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
+  - {name: 🌀Google-cn, type: select, include-all-providers: true,  proxies: [🌀Google, DIRECT  ]}
+
   - {name: 🎮Games, type: select, include-all-providers: true,  proxies: [🗽SELECT, ➡️全球直连, 🇭🇰HK, ]}
   - {name: ➡️全球直连, type: select, proxies: [DIRECT, 🗽SELECT]}
   - {name: 🏴‍☠️全球拦截, type: select, proxies: [REJECT, 🗽SELECT, ➡️全球直连]}
@@ -110,42 +115,50 @@ rule-providers:
     path: ./ruleset/applications.yaml
     interval: 86400
 rules:
-  - RULE-SET,lancidr,DIRECT
+  - GEOIP,private,DIRECT
   - GEOSITE,private,DIRECT
   - GEOSITE,category-ads-all,🏴‍☠️全球拦截
+  - GEOSITE,cloudflare-cn,➡️全球直连
+  - GEOSITE,sb,➡️全球直连
   - PROCESS-NAME,sshd,➡️全球直连
   - PROCESS-NAME,ssh,➡️全球直连
-  - DOMAIN-SUFFIX,recaptcha.net,🌀Google
-  - DOMAIN-SUFFIX,googletagmanager.com,🌀Google
-  - DOMAIN-SUFFIX,services.googleapis.cn,🌀Google
+  
+  - GEOSITE,google-gemini,⌨️OpenAI
   - GEOSITE,openai,⌨️OpenAI
+  - GEOSITE,spotify,🎵Spotify
+
   - GEOSITE,onedrive,🗃OneDrive
   - GEOSITE,mega,🗃OneDrive
-  - GEOSITE,microsoft,🗃OneDrive
+  - GEOSITE,docker,🗃OneDrive
+
   - GEOIP,telegram,📱Telegram
   - GEOSITE,telegram,📱Telegram
   - GEOSITE,discord,📱Telegram
   - GEOSITE,line,📱Telegram
   - GEOSITE,whatsapp,📱Telegram
+
   - GEOSITE,tiktok,📺YouTube
   - GEOSITE,youtube,📺YouTube
+  - GEOIP,netflix,📺YouTube
   - GEOSITE,netflix,📺YouTube
   - GEOSITE,disney,📺YouTube
   - GEOSITE,hbo,📺YouTube
-  - GEOSITE,spotify,📺YouTube
-  - GEOSITE,google,🌀Google
+  
   - GEOSITE,oracle,🌀Google
   - GEOSITE,github,🌀Google
   - GEOSITE,gitlab,🌀Google
   - GEOSITE,reddit,🌀Google
+  - GEOIP,facebook,🌀Google
+  - GEOSITE,facebook,🌀Google
+  - GEOIP,twitter,🌀Google
   - GEOSITE,twitter,🌀Google
-  - GEOSITE,cloudflare,🌀Google
   - GEOSITE,binance,🌀Google
-  - GEOSITE,amazon,🗽SELECT
-  - GEOSITE,meta,🗽SELECT
-  - GEOSITE,apple,🗽SELECT
-  - GEOSITE,speedtest,🗽SELECT
-  - GEOSITE,docker,🗽SELECT
+
+  - GEOSITE,cloudflare,📈speedtest
+  - GEOSITE,speedtest,📈speedtest
+  - PROCESS-NAME,aria2c,📈speedtest
+  - PROCESS-NAME,aria2c.exe,📈speedtest
+
   - GEOSITE,steam,🎮Games
   - GEOSITE,epicgames,🎮Games
   - GEOSITE,blizzard,🎮Games
@@ -155,11 +168,29 @@ rules:
   - GEOSITE,playstation,🎮Games
   - GEOSITE,xbox,🎮Games
   - GEOSITE,riot,🎮Games
-  - GEOSITE,bytedance,➡️全球直连
-  - GEOSITE,bilibili,➡️全球直连
-  - GEOSITE,sina,➡️全球直连
-  - GEOSITE,steam@cn,➡️全球直连
-  - RULE-SET,applications,➡️全球直连
+
+  - GEOSITE,douyin,🧱墙内常用
+  - GEOSITE,bilibili,🧱墙内常用
+  - GEOSITE,tencent,🧱墙内常用
+  - GEOSITE,douban,🧱墙内常用
+  - GEOSITE,xiaohongshu,🧱墙内常用
+  - GEOSITE,zhihu,🧱墙内常用
+  - GEOSITE,baidu,🧱墙内常用
+  - GEOSITE,sina,🧱墙内常用
+  - GEOSITE,meituan,🧱墙内常用
+  - GEOSITE,steam@cn,🧱墙内常用
+  - GEOSITE,apple-cn,🧱墙内常用
+
+  - GEOSITE,amazon,🗽SELECT
+  - GEOSITE,meta,🗽SELECT
+  - GEOSITE,apple,🗽SELECT
+
+  - GEOSITE,microsoft,🌀Google
+  - GEOSITE,hcaptcha,🌀Google-cn
+  - GEOSITE,google-cn,🌀Google-cn
+  - GEOIP,google,🌀Google
+  - GEOSITE,google,🌀Google
+  
   - GEOSITE,gfw,🗽SELECT
   - GEOSITE,cn,➡️全球直连
   - GEOIP,CN,➡️全球直连

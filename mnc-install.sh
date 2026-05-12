@@ -1170,6 +1170,7 @@ sudoku://${uuid}@${link_host}:${select_port}?aead_method=chacha20-poly1305&paddi
 mieru://${uuid}:${uuid}@${link_host}:${TU_SELECT_PORT}?transport=tcp&multiplexing=MULTIPLEXING_LOW#${mr_name}
 tuic://${uuid}:${uuid}@${link_host}:${TU_SELECT_PORT}?sni=${Certificate_name}&alpn=h3&congestion_control=bbr&udp_relay_mode=native&ech=${ech_link}#${tu_name}
 trusttunnel://${uuid}:${uuid}@${link_host}:${select_port}?security=tls&sni=${Certificate_name}&fp=chrome&alpn=h2&ech=${ech_link_1}&congestion_control=bbr#${tt_name}
+#分享链接在大多数客户端无法使用,除非其支持相应的协议,并可以配置ech参数
 EOF
 
 if [[ "$select_port" == "443" ]]; then
@@ -1180,7 +1181,7 @@ fi
 
 curl -fL --max-time 10 -o /opt/www/convertio.tar.xz https://github.com/niylin/mnc-install/releases/download/nhg/convertio.tar.xz
 tar -xf /opt/www/convertio.tar.xz -C /opt/www
-curl -fsSL -o /opt/www/sub/config.yaml https://link.wdqgn.eu.org/nopasswd/config.yaml
+curl -fsSL -o /opt/www/sub/config.yaml https://raw.githubusercontent.com/niylin/mnc-install/master/config.yaml
 subscription_address=https://${Certificate_name}:${select_port}/$uuid/${current_time}.yaml
 snlink_address=https://${Certificate_name}:${select_port}/$uuid/${current_time}.txt
 sed -i "s#my-subscription-address#$(printf '%s' "$subscription_address" | sed 's/[\/&]/\\&/g')#g" /opt/www/sub/config.yaml
@@ -1192,7 +1193,7 @@ cat > /opt/www/sub/README.txt <<EOF
 订阅链接仅支持使用最新mihomo内核的客户端,比如ClashX.Meta和Clash.Meta for Android,其他客户端报错,需根据报错信息删除不支持的节点
 定期清理解析记录,清理后订阅链接和CF节点${proxy_name}|${current_time}失效,其他节点不受影响
 clash订阅链接地址为,可直接使用 https://$Certificate_name:$select_port/$uuid/config.yaml
-snlink分享链接文件为,可直接使用 ${snlink_address}
+snlink分享链接文件为 ${snlink_address}
 proxy-providers: 配置
 ${current_time}: {type: http, url: ${subscription_address}, health-check: {enable: true, url: https://cp.cloudflare.com}}
 检测到的IP地址, $ip_address ,如果出站IP和入站IP不同,无法使用订阅链接.
