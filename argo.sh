@@ -5,7 +5,7 @@ set -o pipefail
 LISTEN_HOST="127.0.0.1"
 LISTEN_PORT="54999"
 PROXY_NAME="argo-vless"
-CONFIG_FILE="/etc/mihomo/config.yaml"
+CONFIG_FILE="/etc/sing-box/config.json"
 ARGO_CONFIG="$HOME/argo.yaml"
 
 require_root() {
@@ -23,31 +23,7 @@ require_curl() {
 }
 
 get_current_uuid() {
-    sed -nE 's/^[[:space:]]*uuid:[[:space:]]*"?([^"]+)"?[[:space:]]*$/\1/p' "$CONFIG_FILE" | head -n 1
-}
-
-get_current_client_encryption() {
-    sed -nE 's/^#[[:space:]]*client-encryption:[[:space:]]*"?([^"]+)"?[[:space:]]*$/\1/p' "$CONFIG_FILE" | head -n 1
-}
-
-url_encode_encryption() {
-    printf '%s' "$1" | sed \
-        -e 's/%/%25/g' \
-        -e 's/:/%3A/g' \
-        -e 's/+/%2B/g' \
-        -e 's/\//%2F/g' \
-        -e 's/=/%3D/g'
-}
-
-generate_vless_encryption() {
-    vless_x25519=$(mihomo generate vless-x25519)
-    server_decryption=$(echo "$vless_x25519" | sed -nE '/\[Server\]/s/.*"([^"]+)".*/\1/p' | head -n 1)
-    client_encryption=$(echo "$vless_x25519" | sed -nE '/\[Client\]/s/.*"([^"]+)".*/\1/p' | head -n 1)
-
-    if [ -z "$server_decryption" ] || [ -z "$client_encryption" ]; then
-        echo "错误：mihomo generate vless-x25519 未能生成有效的 VLESS 加密参数。"
-        exit 1
-    fi
+    sed -nE 's/^[[:space:]]*"uuid":[[:space:]]*"([^"]+)".*/\1/p' "$CONFIG_FILE" | head -n 1
 }
 
 start_tunnel() {
@@ -74,7 +50,7 @@ start_tunnel() {
     rm -f "$tmp_log"
 
     if [ -z "$domain_name" ]; then
-        echo "错误：未能获取域名，请运行 argo.sh -res 重新创建隧道"
+        echo "错误：未能获取域名，请运行 ./argo.sh -res 重新创建隧道"
         exit 1
     fi
 }
@@ -82,8 +58,7 @@ start_tunnel() {
 write_client_config() {
     ws_path="/${uuid}-vl"
     uri_path="%2F${uuid}-vl"
-    uri_client_encryption=$(url_encode_encryption "$client_encryption")
-    vless_link="vless://${uuid}@${domain_name}:443?encryption=${uri_client_encryption}&security=tls&sni=${domain_name}&type=ws&host=${domain_name}&path=${uri_path}#${PROXY_NAME}"
+    vless_link="vless://${uuid}@${domain_name}:443?encryption=none&security=tls&sni=${domain_name}&type=ws&host=${domain_name}&path=${uri_path}#${PROXY_NAME}"
 
     cat > "$ARGO_CONFIG" <<EOF
 # Clash/Mihomo 配置
@@ -101,7 +76,6 @@ proxies:
       path: "${ws_path}"
       headers:
         Host: "${domain_name}"
-    encryption: "${client_encryption}"
 
 # V2Ray/v2rayN/v2rayNG 链接
 # ${vless_link}
@@ -117,12 +91,6 @@ restart_tunnel() {
     uuid=$(get_current_uuid)
     if [ -z "$uuid" ]; then
         echo "错误：未能从 $CONFIG_FILE 读取 uuid，请先运行 argo.sh 重新生成配置。"
-        exit 1
-    fi
-
-    client_encryption=$(get_current_client_encryption)
-    if [ -z "$client_encryption" ]; then
-        echo "错误：未能从 $CONFIG_FILE 读取客户端加密参数，请先运行 argo.sh 重新生成配置。"
         exit 1
     fi
 
@@ -171,43 +139,61 @@ ensure_cloudflared() {
     fi
 }
 
-ensure_mihomo() {
-    if ! command -v mihomo >/dev/null 2>&1; then
-        echo "未检测到 mihomo，正在安装..."
-        curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/pkg/mihomo-pkg.sh | bash
+install_sing_box() {
+    if command -v sing-box >/dev/null 2>&1; then
+        echo "--------------------------------"
+        echo "检测到 sing-box 已安装，跳过安装步骤。"
+        sing-box version
+        echo "--------------------------------"
+        return
     fi
-}
 
-restart_mihomo() {
+    echo "未检测到 sing-box，正在开始安装..."
+    curl -fsSL https://sing-box.app/install.sh | sh
+}
+restart_sing_box() {
     if command -v systemctl >/dev/null 2>&1; then
-        systemctl restart mihomo
-    elif command -v rc-service >/dev/null 2>&1; then
-        rc-service mihomo restart
+        systemctl enable --now sing-box
+        systemctl restart sing-box
+    elif command -v rc-update >/dev/null 2>&1 && command -v rc-service >/dev/null 2>&1; then
+        rc-update add sing-box default
+        rc-service sing-box restart
     else
-        echo "错误：未找到 systemctl 或 rc-service，无法重启 mihomo。"
+        echo "错误：未找到 systemctl 或 OpenRC，无法重启 sing-box。"
         exit 1
     fi
 }
 
-write_mihomo_config() {
-    mkdir -p /etc/mihomo
+write_sing_box_config() {
+    mkdir -p /etc/sing-box
     cat > "$CONFIG_FILE" <<EOF
-# client-encryption: "${client_encryption}"
-ipv6: true
-log-level: info
-mode: rule
-listeners:
-  - name: vless-ws-in
-    type: vless
-    listen: ${LISTEN_HOST}
-    port: ${LISTEN_PORT}
-    users:
-      - username: 1
-        uuid: ${uuid}
-    decryption: "${server_decryption}"
-    ws-path: /${uuid}-vl
-rules:
-  - MATCH,DIRECT
+{
+  "log": {
+    "level": "info"
+  },
+  "inbounds": [
+    {
+      "type": "vless",
+      "tag": "vless-ws-in",
+      "listen": "${LISTEN_HOST}",
+      "listen_port": ${LISTEN_PORT},
+      "users": [
+        {
+          "uuid": "${uuid}"
+        }
+      ],
+      "transport": {
+        "type": "ws",
+        "path": "/${uuid}-vl"
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct"
+    }
+  ]
+}
 EOF
 }
 
@@ -230,10 +216,9 @@ main() {
 
     uuid=$(cat /proc/sys/kernel/random/uuid)
 
-    ensure_mihomo
-    generate_vless_encryption
-    write_mihomo_config
-    restart_mihomo
+    install_sing_box
+    write_sing_box_config
+    restart_sing_box
     ensure_cloudflared
     start_tunnel
     write_client_config
