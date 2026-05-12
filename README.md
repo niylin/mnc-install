@@ -15,7 +15,7 @@
 ### 1. 一键安装 mihomo (推荐)
 安装mihomo并配置 `hysteria2`， `vless-reality`， `anytls`， `vless-ws` , `tuic-v5`, `mieru`, `trusrtunnel`。
 ```bash
-curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/mnc-install.sh | bash
+curl -fsSL -o mnc-install.sh https://raw.githubusercontent.com/niylin/mnc-install/master/mnc-install.sh && chmod +x mnc-install.sh && ./mnc-install.sh
 ```
 
 ### 2. 一键安装 sing-box
@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/sing-box-
 ### 3. cloudflared 临时隧道
 适用于无入站环境。
 ```bash
-curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/argo.sh | bash
+curl -fsSL -o argo.sh https://raw.githubusercontent.com/niylin/mnc-install/master/argo.sh && chmod +x argo.sh && ./argo.sh
 ```
 
 

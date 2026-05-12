@@ -7,7 +7,6 @@ LISTEN_PORT="54999"
 PROXY_NAME="argo-vless"
 CONFIG_FILE="/etc/mihomo/config.yaml"
 ARGO_CONFIG="$HOME/argo.yaml"
-SCRIPT_URL="https://raw.githubusercontent.com/niylin/mnc-install/master/argo.sh"
 
 require_root() {
     if [ "$EUID" -ne 0 ]; then
@@ -134,7 +133,7 @@ restart_tunnel() {
     echo "生成的配置位于 $ARGO_CONFIG"
     echo "脚本执行完成，cloudflared 隧道已在后台运行，域名为 $domain_name"
     echo "临时隧道仅供测试使用，如需稳定连接，请使用个人账户创建隧道至 http://${LISTEN_HOST}:${LISTEN_PORT}"
-    echo "隧道过期，运行 argo.sh -res 重新创建隧道"
+    echo "隧道过期，运行 ./argo.sh -res 重新创建隧道"
 }
 
 install_cloudflared() {
@@ -242,10 +241,6 @@ main() {
     echo "分配域名: $domain_name"
     echo "cloudflared 隧道已在后台运行，PID: $cloudflared_pid"
     cat "$ARGO_CONFIG"
-
-    curl -fsSL -o "$HOME/argo.sh" "$SCRIPT_URL"
-    chmod +x "$HOME/argo.sh"
-
     echo "生成的配置位于 $ARGO_CONFIG"
     echo "临时隧道仅供测试使用，如需稳定连接，请使用个人账户创建隧道至 http://${LISTEN_HOST}:${LISTEN_PORT}"
     echo "隧道过期，运行 argo.sh -res 重新创建隧道"
