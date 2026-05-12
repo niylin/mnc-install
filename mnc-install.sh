@@ -14,6 +14,12 @@ require_root() {
     fi
 }
 
+remove_nginx_block() {
+    local nginx_conf="/etc/nginx/nginx.conf"
+    if [ -f "$nginx_conf" ]; then
+        sed -i '/# BEGIN MIHOMO_NGINX_STREAM/,/# END MIHOMO_NGINX_STREAM/d' "$nginx_conf"
+    fi
+}
 uninstall_all() {
     echo "开始清理 mnc-install.sh 及关联脚本创建的内容..."
 
@@ -45,8 +51,7 @@ uninstall_all() {
     rm -f /opt/www/sub/README.txt
     rm -f /opt/www/sub/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].yaml
     rm -f /opt/www/sub/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].txt
-
-    mkdir -p /etc/mihomo/cert /etc/nginx/conf.d /opt/www/sub
+    remove_nginx_block
 
     echo "清理完成。"
     exit 0
