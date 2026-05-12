@@ -1202,7 +1202,6 @@ ${current_time}: {type: http, url: ${subscription_address}, health-check: {enabl
 https://board.zash.run.place/#/setup?hostname=$Certificate_name&port=$select_port&secondaryPath=/${current_time}&secret=$uuid
 可在面板中更改出站节点为直连或warp,查看使用状态和流量
 如果需要删除脚本创建的内容,使用 -uninstall 参数,不会删除包管理器安装的内容
-添加其他站点, default  9999
 如使用自定义证书,请将证书放入：
 /etc/mihomo/cert/$Certificate_name.crt
 /etc/mihomo/cert/$Certificate_name.key
