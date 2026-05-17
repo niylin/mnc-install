@@ -8,6 +8,20 @@ PROXY_NAME="argo-vless"
 CONFIG_FILE="/etc/sing-box/config.json"
 ARGO_CONFIG="$HOME/argo.yaml"
 
+show_help() {
+cat <<EOF
+用法: $0 [参数]
+
+不带参数:
+  安装 sing-box,cloudflared 并配置临时隧道。
+
+参数:
+  -h, --help       显示此帮助信息
+  -res             重新创建隧道,适用于隧道过期
+  -sing-box        安装 sing-box 
+  -cloudflared     安装 cloudflared
+EOF
+}
 require_root() {
     if [ "$EUID" -ne 0 ]; then
         echo "错误：请使用 root 权限运行此脚本。"
@@ -48,7 +62,7 @@ start_tunnel() {
     done
 
     rm -f "$tmp_log"
-
+    echo "分配的域名: $domain_name"
     if [ -z "$domain_name" ]; then
         echo "错误：未能获取域名，请运行 ./argo.sh -res 重新创建隧道"
         exit 1
@@ -63,19 +77,19 @@ write_client_config() {
     cat > "$ARGO_CONFIG" <<EOF
 # Clash/Mihomo 配置
 proxies:
-  - name: "${PROXY_NAME}"
-    type: vless
-    server: "${domain_name}"
-    port: 443
-    uuid: "${uuid}"
-    network: ws
-    tls: true
-    servername: "${domain_name}"
-    client-fingerprint: chrome
-    ws-opts:
-      path: "${ws_path}"
-      headers:
-        Host: "${domain_name}"
+- name: "${PROXY_NAME}"
+  type: vless
+  server: "${domain_name}"
+  port: 443
+  uuid: "${uuid}"
+  network: ws
+  tls: true
+  servername: "${domain_name}"
+  client-fingerprint: chrome
+  ws-opts:
+    path: "${ws_path}"
+    headers:
+      Host: "${domain_name}"
 
 # V2Ray/v2rayN/v2rayNG 链接
 # ${vless_link}
@@ -150,6 +164,13 @@ install_sing_box() {
 
     echo "未检测到 sing-box，正在开始安装..."
     curl -fsSL https://sing-box.app/install.sh | sh
+    if command -v sing-box >/dev/null 2>&1; then
+        echo "sing-box 安装完成！"
+        sing-box version
+    else
+        echo "sing-box 安装失败，请检查安装脚本输出。"
+        exit 1
+    fi
 }
 restart_sing_box() {
     if command -v systemctl >/dev/null 2>&1; then
@@ -203,13 +224,21 @@ main() {
     require_curl
 
     case "${1:-}" in
-        -ins)
+        -h|--help|help)
+            show_help
+            exit 0
+            ;;
+        -cloudflared)
             install_cloudflared
             exit 0
             ;;
         -res)
             ensure_cloudflared
             restart_tunnel
+            exit 0
+            ;;
+        -sing-box)
+            install_sing_box
             exit 0
             ;;
     esac
