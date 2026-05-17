@@ -552,5 +552,6 @@ restart_service
 cat "$LINK_CONFIG"
 cat "$V2RAY_LINK"
 echo "客户端分享链接已生成：$V2RAY_LINK"
+echo "使用的入站端口 $select_port，$select_port_1,net机需正确配置端口转发"
 echo "自动获取到的$ip_address 如果入站IP与出站IP不同，修改配置中的 IP 替换为实际入站 IP 后使用"
 echo "如遇意外错误可加入tg群反馈 https://t.me/dmjlqa"
