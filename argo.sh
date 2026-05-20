@@ -165,14 +165,14 @@ install_cloudflared() {
     echo "最新版本: $latest_tag"
     echo "正在下载: cloudflared-linux-${binary_arch}"
 
-    if curl -fSL "$url" -o "$tmpfile"; then
+    if curl --max-time 15 -fSL "$url" -o "$tmpfile"; then
         :
     else
         echo "直链下载失败，尝试镜像代理 ..."
         local ok=false
         for mirror in "${mirrors[@]}"; do
             echo "尝试镜像: ${mirror}"
-            if curl -fSL "${mirror}${url}" -o "$tmpfile"; then
+            if curl --max-time 15 -fSL "${mirror}${url}" -o "$tmpfile"; then
                 ok=true
                 break
             fi
@@ -280,14 +280,14 @@ install_sing_box() {
     )
 
     echo "正在下载: $pkg_name"
-    if curl -fSL "$url" -o "$pkg_name"; then
+    if curl --max-time 15 -fSL "$url" -o "$pkg_name"; then
         :
     else
         echo "直链下载失败，尝试镜像代理 ..."
         local ok=false
         for mirror in "${mirrors[@]}"; do
             echo "尝试镜像: ${mirror}"
-            if curl -fSL "${mirror}${url}" -o "$pkg_name"; then
+            if curl --max-time 15 -fSL "${mirror}${url}" -o "$pkg_name"; then
                 ok=true
                 break
             fi

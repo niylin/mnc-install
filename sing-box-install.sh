@@ -269,12 +269,12 @@ install_sing_box() {
     )
 
     echo "正在下载: $pkg_name"
-    if ! curl -fSL "$url" -o "$pkg_name"; then
+    if ! curl --max-time 15 -fSL "$url" -o "$pkg_name"; then
         echo "直链下载失败，尝试镜像代理 ..."
         local ok=false
         for mirror in "${mirrors[@]}"; do
             echo "尝试镜像: ${mirror}"
-            if curl -fSL "${mirror}${url}" -o "$pkg_name"; then
+            if curl --max-time 15 -fSL "${mirror}${url}" -o "$pkg_name"; then
                 ok=true
                 break
             fi
