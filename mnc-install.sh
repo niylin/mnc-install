@@ -6,6 +6,12 @@ USQUE_CONFIG="${USQUE_CONFIG:-/etc/mihomo/usque-config.json}"
 MASQUE_SERVER="${MASQUE_SERVER:-masque.wdqgn.eu.org}"
 USQUE_REPO="${USQUE_REPO:-Diniboy1123/usque}"
 USQUE_INSTALL_DIR="${USQUE_INSTALL_DIR:-/usr/local/bin}"
+GITHUB_DOWNLOAD_TIMEOUT="${GITHUB_DOWNLOAD_TIMEOUT:-15}"
+GITHUB_MIRRORS=(
+    "https://mirror.ghproxy.com/"
+    "https://ghproxy.net/"
+    "https://github.moeyy.xyz/"
+)
 
 require_root() {
     if [ "$EUID" -ne 0 ]; then
@@ -92,7 +98,7 @@ cat <<EOF
 - name: vless-ws-in
   type: vless
   listen: 127.0.0.1
-  port: 58996
+  port: 58991
   users:
     - username: 1
       uuid: $uuid
@@ -129,6 +135,25 @@ format_link_host() {
         *:*) printf '[%s]' "$1" ;;
         *) printf '%s' "$1" ;;
     esac
+}
+github_download() {
+    local url="$1"
+    local output="$2"
+    local mirror
+
+    if curl --max-time "$GITHUB_DOWNLOAD_TIMEOUT" -fSL "$url" -o "$output"; then
+        return 0
+    fi
+
+    echo "直链下载失败，尝试镜像代理 ..." >&2
+    for mirror in "${GITHUB_MIRRORS[@]}"; do
+        echo "尝试镜像: ${mirror}" >&2
+        if curl --max-time "$GITHUB_DOWNLOAD_TIMEOUT" -fSL "${mirror}${url}" -o "$output"; then
+            return 0
+        fi
+    done
+
+    return 1
 }
 warp_log() {
     printf '[+] %s\n' "$*" >&2
@@ -175,7 +200,8 @@ warp_install_usque_from_github() {
     target="$USQUE_INSTALL_DIR/usque"
 
     warp_log "未检测到 usque，正在从 GitHub 安装"
-    curl -fsSL "https://api.github.com/repos/${USQUE_REPO}/releases/latest" -o "$meta_file"
+    github_download "https://api.github.com/repos/${USQUE_REPO}/releases/latest" "$meta_file" \
+        || warp_die "无法获取 usque 最新版本信息"
 
     read -r asset_url asset_name < <(python3 - "$meta_file" "$os" "$arch" <<'PY'
 import json
@@ -223,7 +249,7 @@ PY
     [ -n "$asset_url" ] || warp_die "未能解析 usque 下载地址"
 
     warp_log "下载 $asset_name"
-    curl -fL --retry 3 --connect-timeout 10 --max-time 120 -o "$archive" "$asset_url"
+    github_download "$asset_url" "$archive" || warp_die "usque 下载失败"
 
     mkdir -p "$work_dir/extract"
     case "$asset_name" in
@@ -529,7 +555,7 @@ EOF
 install_mihomo() {
     install_mihomo_dependencies
 
-    local arch bin_arch cpu_flags level latest_version file_name download_url
+    local arch bin_arch cpu_flags level latest_version file_name download_url latest_meta
     arch=$(uname -m)
     case "$arch" in
         x86_64) bin_arch="amd64" ;;
@@ -555,7 +581,14 @@ install_mihomo() {
 
     if ! command -v mihomo >/dev/null 2>&1; then
         echo "[+] 正在安装 mihomo..."
-        latest_version=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        latest_meta="$(mktemp)"
+        if ! github_download "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" "$latest_meta"; then
+            rm -f "$latest_meta"
+            echo "错误：无法获取 mihomo 最新版本号。"
+            exit 1
+        fi
+        latest_version=$(grep '"tag_name":' "$latest_meta" | sed -E 's/.*"([^"]+)".*/\1/')
+        rm -f "$latest_meta"
         if [ -z "$latest_version" ]; then
             echo "错误：无法获取 mihomo 最新版本号。"
             exit 1
@@ -569,14 +602,9 @@ install_mihomo() {
         download_url="https://github.com/MetaCubeX/mihomo/releases/download/${latest_version}/${file_name}"
 
         echo "[+] 正在下载 ${file_name}..."
-        if ! curl -fsSL -o /tmp/mihomo.gz "$download_url"; then
-            echo "[!] 对应构建下载失败，尝试 compatible 版本..."
-            file_name="mihomo-linux-${bin_arch}-compatible-${latest_version}.gz"
-            download_url="https://github.com/MetaCubeX/mihomo/releases/download/${latest_version}/${file_name}"
-            curl -fsSL -o /tmp/mihomo.gz "$download_url" || {
-                echo "错误：mihomo 下载失败。"
-                exit 1
-            }
+        if ! github_download "$download_url" /tmp/mihomo.gz; then
+            echo "错误：mihomo 下载失败。"
+            exit 1
         fi
 
         gzip -df /tmp/mihomo.gz
@@ -1005,8 +1033,7 @@ mkdir -p /etc/nginx/conf.d
 
 cat > /etc/nginx/conf.d/subscription.conf <<EOF
 server {
-    listen 9999 ssl;
-    listen [::]:9999 ssl;
+    listen 127.0.0.1:9999 ssl;
 
     ssl_certificate /etc/mihomo/cert/$CERT_NAME.crt;
     ssl_certificate_key /etc/mihomo/cert/$CERT_NAME.key;
@@ -1017,6 +1044,9 @@ server {
     ssl_early_data on;
     ssl_stapling on;
     ssl_stapling_verify on;
+
+    port_in_redirect off;
+    absolute_redirect off;
 
     location /$uuid/ {
         alias /opt/www/sub/;
@@ -1033,7 +1063,7 @@ server {
 
     location /$uuid-vl {
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:58996;
+        proxy_pass http://127.0.0.1:58991;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -1044,7 +1074,7 @@ server {
     }
 }
 EOF
-cat > /etc/nginx/conf.d/default.conf <<EOF
+cat > /etc/nginx/conf.d/default1.conf <<EOF
 server {
     listen 127.0.0.1:9998;
     index index.html index.htm;
@@ -1175,7 +1205,6 @@ sudoku://${uuid}@${link_host}:${select_port}?aead_method=chacha20-poly1305&paddi
 mieru://${uuid}:${uuid}@${link_host}:${TU_SELECT_PORT}?transport=tcp&multiplexing=MULTIPLEXING_LOW#${mr_name}
 tuic://${uuid}:${uuid}@${link_host}:${TU_SELECT_PORT}?sni=${Certificate_name}&alpn=h3&congestion_control=bbr&udp_relay_mode=native&ech=${ech_link}#${tu_name}
 trusttunnel://${uuid}:${uuid}@${link_host}:${select_port}?security=tls&sni=${Certificate_name}&fp=chrome&alpn=h2&ech=${ech_link_1}&congestion_control=bbr#${tt_name}
-#分享链接在大多数客户端无法使用,除非其支持相应的协议,并可以配置ech参数
 EOF
 
 if [[ "$select_port" == "443" ]]; then
@@ -1184,9 +1213,15 @@ vless://${uuid}@cf.wdqgn.eu.org:443?encryption=$(url_encode "$client_encryption"
 EOF
 fi
 
-curl -fL --max-time 10 -o /opt/www/convertio.tar.xz https://github.com/niylin/mnc-install/releases/download/nhg/convertio.tar.xz
+github_download "https://github.com/niylin/mnc-install/releases/download/nhg/convertio.tar.xz" /opt/www/convertio.tar.xz || {
+    echo "错误：convertio.tar.xz 下载失败。"
+    exit 1
+}
 tar -xf /opt/www/convertio.tar.xz -C /opt/www
-curl -fsSL -o /opt/www/sub/config.yaml https://raw.githubusercontent.com/niylin/mnc-install/master/config.yaml
+github_download "https://raw.githubusercontent.com/niylin/mnc-install/master/config.yaml" /opt/www/sub/config.yaml || {
+    echo "错误：config.yaml 下载失败。"
+    exit 1
+}
 subscription_address=https://${Certificate_name}:${select_port}/$uuid/${current_time}.yaml
 snlink_address=https://${Certificate_name}:${select_port}/$uuid/${current_time}.txt
 sed -i "s#my-subscription-address#$(printf '%s' "$subscription_address" | sed 's/[\/&]/\\&/g')#g" /opt/www/sub/config.yaml
@@ -1206,11 +1241,12 @@ ${current_time}: {type: http, url: ${subscription_address}, health-check: {enabl
 服务端zashboard面板,地址为 
 https://board.zash.run.place/#/setup?hostname=$Certificate_name&port=$select_port&secondaryPath=/${current_time}&secret=$uuid
 可在面板中更改出站节点为直连或warp,查看使用状态和流量
-如果需要删除脚本创建的内容,使用 -uninstall 参数,不会删除包管理器安装的内容
 如使用自定义证书,请将证书放入：
 /etc/mihomo/cert/$Certificate_name.crt
 /etc/mihomo/cert/$Certificate_name.key
 然后重启mihomo和nginx
+snlink分享链接在大多数客户端无法使用,除非其支持相应的协议,并可以配置ech参数
+使用 -help 参数查看脚本的其他功能
 如遇意外错误可加入tg群反馈 https://t.me/dmjlqa
 ${ECHO_TIPS}
 ------------------------------
