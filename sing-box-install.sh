@@ -1014,8 +1014,7 @@ config = {
     "log": {"level": "info"},
     "experimental": {
         "cache_file": {
-            "enabled": true,
-            "store_dns": false
+            "enabled": true
         },
         "clash_api": {
             "external_controller": "127.0.0.1:9090",
