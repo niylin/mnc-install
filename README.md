@@ -25,7 +25,7 @@ curl -fsSL -o sing-box-install.sh https://raw.githubusercontent.com/niylin/mnc-i
 ```
 #### sing-box脚本支持中转配置
 
-在落地VPS上运行以下命令,运行后会输出中转VPS需要的安装的命令
+在落地VPS上运行以下命令,运行后会输出中转VPS需要的安装的命令,可在多台中转设备上使用.
 ```bash
 curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/sing-box-install.sh | bash -s -- -ouserver
 ```
