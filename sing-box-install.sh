@@ -1044,7 +1044,7 @@ config = {
         ],
         "rules": [{"rule_set": ["geosite-cn"], "server": "dns_direct"}],
         "final": "dns_proxy",
-        "strategy": "ipv4_only",
+        "strategy": "prefer_ipv4",
     },
     "route": {
         "rule_set": [
