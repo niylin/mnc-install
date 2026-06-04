@@ -1012,6 +1012,16 @@ outbounds = [
 
 config = {
     "log": {"level": "info"},
+    "experimental": {
+        "cache_file": {
+            "enabled": true,
+            "store_dns": false
+        },
+        "clash_api": {
+            "external_controller": "127.0.0.1:9090",
+            "secret": uuid
+        }
+    },
     "dns": {
         "servers": [
             {
