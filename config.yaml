@@ -8,9 +8,7 @@ ipv6: true
 keep-alive-interval: 30
 find-process-mode: strict
 external-controller: "127.0.0.1:9090"
-secret: "password-config"
-external-ui: ui
-external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
+secret: "78111762-5587-424b-842e-c1293f8b6055"
 profile:
   store-selected: true
   store-fake-ip: false
@@ -63,15 +61,6 @@ dns:
   proxy-server-nameserver:
     - https://cloudflare-dns.com/dns-query
     - 223.5.5.5
-proxy-providers:
-  mnc-instal:
-    type: http
-    url: my-subscription-address
-    interval: 3600
-    health-check:
-      enable: true
-      url: https://cp.cloudflare.com
-      interval: 1800
 proxy-groups:
   - {name: 🗽SELECT, type: select, include-all: true, proxies: [🔥AUTO, DIRECT, 🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
   - {name: 🛹OTHER, type: select, include-all: true, proxies: [🗽SELECT, ➡️全球直连,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}

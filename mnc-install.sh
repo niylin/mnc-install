@@ -1224,8 +1224,7 @@ github_download "https://raw.githubusercontent.com/niylin/mnc-install/master/con
 }
 subscription_address=https://${Certificate_name}:${select_port}/$uuid/${current_time}.yaml
 snlink_address=https://${Certificate_name}:${select_port}/$uuid/${current_time}.txt
-sed -i "s#my-subscription-address#$(printf '%s' "$subscription_address" | sed 's/[\/&]/\\&/g')#g" /opt/www/sub/config.yaml
-sed -i "s#password-config#$uuid#g" /opt/www/sub/config.yaml
+cat "/opt/www/sub/${current_time}.yaml" >> "/opt/www/sub/config.yaml"
 
 cat > /opt/www/sub/README.txt <<EOF
 ------------------------------
