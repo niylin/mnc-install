@@ -26,7 +26,7 @@ curl -fsSL https://raw.githubusercontent.com/niylin/mnc-install/master/sing-box-
 - 临时隧道过期,运行 "-tunnel res" 即可重新获取隧道,自动更新订阅信息和配置文件
 
 ```
-用法: sing-box.sh [参数]
+用法: sing-box-install.sh [参数]
 
 不带参数:
   安装 cloudflared、sing-box、nginx，配置四个直连协议和一个 VMess-ws 临时隧道节点。
