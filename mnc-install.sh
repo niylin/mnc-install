@@ -804,9 +804,6 @@ proxies:
   client-fingerprint: chrome
   tls: true
   ech-opts: {enable: true, config: $ech_config_primary}
-  idle-session-check-interval: 30
-  idle-session-timeout: 30
-  min-idle-session: 0
   sni: $domain_name
   alpn: [h2, http/1.1]
 - name: "${node_prefix}-SU|${current_time}"
