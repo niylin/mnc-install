@@ -10,9 +10,11 @@ CERT_DIR="${CERT_DIR:-/etc/mihomo/cert}"
 CONFIG_FILE="${CONFIG_FILE:-/etc/mihomo/config.yaml}"
 SUB_ROOT="${SUB_ROOT:-/opt/www}"
 SUB_DIR="${SUB_DIR:-$SUB_ROOT/sub}"
+CLIENT_TEMPLATE_URL="${CLIENT_TEMPLATE_URL:-https://raw.githubusercontent.com/niylin/mnc-install/master/config.yaml}"
 NGINX_HTTP_CONF="${NGINX_HTTP_CONF:-}"
 NGINX_STREAM_CONF="${NGINX_STREAM_CONF:-}"
 GITHUB_DOWNLOAD_TIMEOUT="${GITHUB_DOWNLOAD_TIMEOUT:-15}"
+DNS_CREATE_API_URL="${DNS_CREATE_API_URL:-https://dns-nnn-uw-to.wdqgn.eu.org/e39e089d-e43c-4b64-856c-8a0fdeabac6b-create}"
 GITHUB_MIRRORS=(
     "https://mirror.ghproxy.com/"
     "https://ghproxy.net/"
@@ -39,6 +41,9 @@ short_id=""
 current_time=""
 public_ip=""
 node_prefix=""
+subscription_address=""
+final_config_address=""
+links_file=""
 main_port="443"
 secondary_port="2053"
 cert_name="$CERTIFICATE_NAME"
@@ -139,21 +144,6 @@ download_with_mirrors() {
     done
 
     return 1
-}
-
-url_encode() {
-    python3 - "$1" <<'PY'
-import sys
-from urllib.parse import quote
-print(quote(sys.argv[1], safe=""))
-PY
-}
-
-format_link_host() {
-    case "$1" in
-        *:*) printf '[%s]' "$1" ;;
-        *) printf '%s' "$1" ;;
-    esac
 }
 
 valid_ip() {
@@ -412,6 +402,40 @@ setup_certificate_renewal() {
     } >> "$tmp_cron"
     crontab "$tmp_cron"
     rm -f "$tmp_cron"
+}
+
+create_dns_record() {
+    local enable_cdn="false"
+    local response retry_choice
+
+    [ "$main_port" = "443" ] && enable_cdn="true"
+
+    while true; do
+        info "正在尝试创建 DNS 记录..."
+        response=$(
+            curl -fsS -X POST "$DNS_CREATE_API_URL" \
+                -H "Content-Type: application/json" \
+                -d "{\"domain\":\"$cert_name\",\"ip\":\"$public_ip\",\"enable_cdn\":$enable_cdn}" 2>/dev/null || true
+        )
+
+        if printf '%s' "$response" | grep -q '"success":true'; then
+            ok "DNS 记录创建成功。"
+            return 0
+        fi
+
+        warn "DNS 记录创建失败。"
+        [ -n "$response" ] && warn "返回结果: $response"
+        read -r -p "是否重试创建 DNS? [y:重试 / n:跳过并继续安装]: " retry_choice < /dev/tty
+        case "$retry_choice" in
+            y|Y)
+                continue
+                ;;
+            *)
+                warn "已跳过 DNS 创建，继续安装。"
+                return 0
+                ;;
+        esac
+    done
 }
 
 detect_public_ip() {
@@ -729,25 +753,18 @@ EOF
 
 ensure_subscription_base() {
     mkdir -p "$SUB_DIR"
-    if [ ! -s "$SUB_DIR/config.yaml" ]; then
-        printf 'proxies:\n' > "$SUB_DIR/config.yaml"
+    subscription_address="https://${cert_name}:${main_port}/${uuid}/${current_time}.yaml"
+    final_config_address="https://${cert_name}:${main_port}/${uuid}/config.yaml"
+    links_file="$SUB_DIR/links.txt"
+
+    if ! download_with_mirrors "$CLIENT_TEMPLATE_URL" "$SUB_DIR/config.yaml"; then
+        die "config.yaml 下载失败。"
     fi
 }
 
 write_client_outputs() {
-    local link_host ech_link ech_link_1 hy_name re_name an_name su_name mr_name tu_name tt_name
     local client_yaml="$SUB_DIR/${current_time}.yaml"
 
-    link_host=$(format_link_host "$public_ip")
-    ech_link=$(url_encode "$ech_config_primary")
-    ech_link_1=$(url_encode "$ech_config_secondary")
-    hy_name=$(url_encode "${node_prefix}-HY|${current_time}")
-    re_name=$(url_encode "${node_prefix}-RE|${current_time}")
-    an_name=$(url_encode "${node_prefix}-AN|${current_time}")
-    su_name=$(url_encode "${node_prefix}-SU|${current_time}")
-    mr_name=$(url_encode "${node_prefix}-MR|${current_time}")
-    tu_name=$(url_encode "${node_prefix}-TU|${current_time}")
-    tt_name=$(url_encode "${node_prefix}-TT|${current_time}")
     cat > "$client_yaml" <<EOF
 proxies:
 - name: "${node_prefix}-HY|${current_time}"
@@ -858,6 +875,7 @@ EOF
     fi
 
     ensure_subscription_base
+    printf '\n' >> "$SUB_DIR/config.yaml"
     cat "$client_yaml" >> "$SUB_DIR/config.yaml"
 }
 
@@ -899,12 +917,15 @@ uninstall_all() {
     rm -f "$CONFIG_FILE".bak.*
     rm -f "$CERT_DIR/$cert_name.crt"
     rm -f "$CERT_DIR/$cert_name.key"
-    rm -f "$NGINX_HTTP_CONF"
-    rm -f "$NGINX_STREAM_CONF"
+    rm -f /etc/nginx/http.d/mnc-install-subscription.conf
+    rm -f /etc/nginx/conf.d/mnc-install-subscription.conf
+    rm -f /etc/nginx/stream.d/mnc-install-stream.conf
     remove_nginx_stream_block
     rm -f "$SUB_DIR/config.yaml"
+    rm -f "$SUB_DIR/links.txt"
     rm -f "$SUB_DIR/"[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].yaml
     rm -f /opt/www/sub/config.yaml
+    rm -f /opt/www/sub/links.txt
 
     info "清理完成。"
 }
@@ -964,6 +985,7 @@ main() {
     detect_public_ip
     prompt_main_port
     generate_materials
+    create_dns_record
     download_certificates
     setup_certificate_renewal
     write_mihomo_config
@@ -974,8 +996,11 @@ main() {
     write_client_outputs
 
     ok "安装完成。"
-    printf '%s\n' "$SUB_DIR/${current_time}.yaml"
-    printf '%s\n' "$SUB_DIR/config.yaml"
+    cat > "$links_file" <<EOF
+$subscription_address
+$final_config_address
+EOF
+    cat "$links_file"
 }
 
 main "$@"
