@@ -1024,7 +1024,6 @@ main() {
 
     ok "安装完成。"
     cat > "$links_file" <<EOF
-域名: $domain_name
 入站IP: $public_ip
 主端口: $main_port
 副端口: $secondary_port
