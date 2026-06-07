@@ -539,11 +539,11 @@ generate_materials() {
 
     output_ech=$(mihomo generate ech-keypair cloudflare-ech.com)
     ech_config_primary=$(printf '%s\n' "$output_ech" | awk -F': ' '/^Config:/ {print $2; exit}')
-    ech_key_primary=$(printf '%s\n' "$output_ech" | sed -n '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/p' | sed '/ECH KEYS/d' | sed 's/^Key: //' | tr -d '\r')
+    ech_key_primary=$(printf '%s\n' "$output_ech" | sed -n '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/p' | sed '/ECH KEYS/d' | sed 's/^Key: //' | tr -d '\r' | sed 's/^/    /')
 
     output_ech_1=$(mihomo generate ech-keypair cloudflare.com)
     ech_config_secondary=$(printf '%s\n' "$output_ech_1" | awk -F': ' '/^Config:/ {print $2; exit}')
-    ech_key_secondary=$(printf '%s\n' "$output_ech_1" | sed -n '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/p' | sed '/ECH KEYS/d' | sed 's/^Key: //' | tr -d '\r')
+    ech_key_secondary=$(printf '%s\n' "$output_ech_1" | sed -n '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/p' | sed '/ECH KEYS/d' | sed 's/^Key: //' | tr -d '\r' | sed 's/^/    /')
 }
 
 write_mihomo_config() {
@@ -585,7 +585,6 @@ listeners:
     disable: false
     mode: legacy
     path_root: "/$uuid"
-  fallback: "127.0.0.1:9998"
 - name: mieru-in
   type: mieru
   port: $secondary_port
@@ -661,14 +660,8 @@ $ech_key_secondary
   ech-key: |
 $ech_key_primary
 $vless_ws_block
-proxy-groups:
-- name: "DIRECT-OUT"
-  type: select
-  include-all: true
-  proxies:
-    - DIRECT
 rules:
-- MATCH,DIRECT-OUT
+- MATCH,DIRECT
 EOF
 }
 
