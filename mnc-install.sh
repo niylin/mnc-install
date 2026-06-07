@@ -287,12 +287,12 @@ install_mihomo_binary() {
 
     ensure_runtime_tools
     work_dir="$(mktemp -d "${TMPDIR:-/tmp}/mihomo-install.XXXXXX")"
-    trap 'rm -rf "$work_dir"' RETURN
 
     latest_json="$work_dir/latest.json"
     release_url="https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
     info "正在获取 mihomo 最新版本..."
     if ! download_with_mirrors "$release_url" "$latest_json"; then
+        rm -rf "$work_dir"
         die "无法获取 mihomo 最新版本信息。"
     fi
 
@@ -328,14 +328,19 @@ else:
 PY
     )
 
-    [ -n "$asset_url" ] || die "未能解析 mihomo 下载地址。"
+    if [ -z "$asset_url" ]; then
+        rm -rf "$work_dir"
+        die "未能解析 mihomo 下载地址。"
+    fi
     info "正在下载 mihomo：$asset_name"
     if ! download_with_mirrors "$asset_url" "$work_dir/mihomo.gz"; then
+        rm -rf "$work_dir"
         die "mihomo 下载失败。"
     fi
 
     gzip -df "$work_dir/mihomo.gz"
     install -m 0755 "$work_dir/mihomo" /usr/local/bin/mihomo
+    rm -rf "$work_dir"
     ok "mihomo 安装完成。"
 }
 
