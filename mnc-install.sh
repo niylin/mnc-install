@@ -44,6 +44,7 @@ node_prefix=""
 subscription_address=""
 final_config_address=""
 links_file=""
+domain_name=""
 main_port="443"
 secondary_port="2053"
 cert_name="$CERTIFICATE_NAME"
@@ -404,6 +405,25 @@ setup_certificate_renewal() {
     rm -f "$tmp_cron"
 }
 
+remove_certificate_renewal() {
+    if ! command -v crontab >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local tmp_cron
+    tmp_cron="$(mktemp)"
+    crontab -l 2>/dev/null \
+        | grep -Fv "curl -fsSL -o $CERT_DIR/$cert_name.crt $CERT_BASE_URL/$cert_name.crt" \
+        | grep -Fv "curl -fsSL -o $CERT_DIR/$cert_name.key $CERT_BASE_URL/$cert_name.key" > "$tmp_cron" || true
+
+    if [ -s "$tmp_cron" ]; then
+        crontab "$tmp_cron"
+    else
+        crontab -r 2>/dev/null || true
+    fi
+    rm -f "$tmp_cron"
+}
+
 create_dns_record() {
     local enable_cdn="false"
     local response retry_choice
@@ -415,7 +435,7 @@ create_dns_record() {
         response=$(
             curl -fsS -X POST "$DNS_CREATE_API_URL" \
                 -H "Content-Type: application/json" \
-                -d "{\"domain\":\"$cert_name\",\"ip\":\"$public_ip\",\"enable_cdn\":$enable_cdn}" 2>/dev/null || true
+                -d "{\"domain\":\"$domain_name\",\"ip\":\"$public_ip\",\"enable_cdn\":$enable_cdn}" 2>/dev/null || true
         )
 
         if printf '%s' "$response" | grep -q '"success":true'; then
@@ -504,6 +524,7 @@ prompt_main_port() {
 
 generate_materials() {
     current_time=$(date +"%Y%m%d-%H%M%S")
+    domain_name="${current_time}.${CERTIFICATE_NAME}"
     uuid=$(cat /proc/sys/kernel/random/uuid)
     short_id=$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')
 
@@ -660,7 +681,7 @@ server {
     ssl_certificate $CERT_DIR/$cert_name.crt;
     ssl_certificate_key $CERT_DIR/$cert_name.key;
 
-    server_name $cert_name;
+    server_name $domain_name;
     ssl_protocols TLSv1.3;
     ssl_ecdh_curve X25519:P-256:P-384:P-521;
     ssl_early_data on;
@@ -709,7 +730,7 @@ stream {
         cloudflare-ech.com     anytls;
         speed.cloudflare.com   reality;
         cloudflare.com         trusttunnel;
-        $cert_name             website;
+        $domain_name           website;
         default                sudoku;
     }
 
@@ -746,8 +767,8 @@ EOF
 
 ensure_subscription_base() {
     mkdir -p "$SUB_DIR"
-    subscription_address="https://${cert_name}:${main_port}/${uuid}/${current_time}.yaml"
-    final_config_address="https://${cert_name}:${main_port}/${uuid}/config.yaml"
+    subscription_address="https://${domain_name}:${main_port}/${uuid}/${current_time}.yaml"
+    final_config_address="https://${domain_name}:${main_port}/${uuid}/config.yaml"
     links_file="$SUB_DIR/links.txt"
 
     if ! download_with_mirrors "$CLIENT_TEMPLATE_URL" "$SUB_DIR/config.yaml"; then
@@ -769,7 +790,7 @@ proxies:
   down: "300 Mbps"
   tls: true
   ech-opts: {enable: true, config: $ech_config_primary}
-  sni: $cert_name
+  sni: $domain_name
   alpn: [h3]
 - name: "${node_prefix}-RE|${current_time}"
   type: vless
@@ -793,7 +814,7 @@ proxies:
   idle-session-check-interval: 30
   idle-session-timeout: 30
   min-idle-session: 0
-  sni: $cert_name
+  sni: $domain_name
   alpn: [h2, http/1.1]
 - name: "${node_prefix}-SU|${current_time}"
   type: sudoku
@@ -833,7 +854,7 @@ proxies:
   fast-open: true
   max-open-streams: 20
   tls: true
-  sni: $cert_name
+  sni: $domain_name
   ech-opts: {enable: true, config: $ech_config_primary}
 - name: "${node_prefix}-TT|${current_time}"
   type: trusttunnel
@@ -844,7 +865,7 @@ proxies:
   client-fingerprint: chrome
   health-check: true
   ech-opts: {enable: true, config: $ech_config_secondary}
-  sni: $cert_name
+  sni: $domain_name
   alpn: [h2]
   congestion-controller: bbr
 EOF
@@ -862,7 +883,7 @@ EOF
   ech-opts: {enable: true}
   flow: xtls-rprx-vision
   alpn: [h2]
-  ws-opts: {path: /$uuid-vl, headers: {host: $cert_name}}
+  ws-opts: {path: /$uuid-vl, headers: {host: $domain_name}}
   encryption: $client_encryption
 EOF
     fi
@@ -910,6 +931,7 @@ uninstall_all() {
     rm -f "$CONFIG_FILE".bak.*
     rm -f "$CERT_DIR/$cert_name.crt"
     rm -f "$CERT_DIR/$cert_name.key"
+    remove_certificate_renewal
     rm -f /etc/nginx/http.d/mnc-install-subscription.conf
     rm -f /etc/nginx/conf.d/mnc-install-subscription.conf
     rm -f /etc/nginx/stream.d/mnc-install-stream.conf
