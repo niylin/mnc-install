@@ -614,7 +614,7 @@ $ech_key_primary
   port: 58997
   listen: 127.0.0.1
   users:
-    username1: $uuid
+    $uuid: $uuid
   certificate: $CERT_DIR/$cert_name.crt
   private-key: $CERT_DIR/$cert_name.key
   ech-key: |
@@ -805,7 +805,7 @@ proxies:
   tls: true
   ech-opts: {enable: true, config: $ech_config_primary}
   sni: $domain_name
-  alpn: [h2, http/1.1]
+  alpn: [h2]
 - name: "${node_prefix}-SU|${current_time}"
   type: sudoku
   server: $public_ip
