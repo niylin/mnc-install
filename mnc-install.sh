@@ -52,10 +52,10 @@ server_decryption=""
 client_encryption=""
 private_key_reality=""
 public_key_reality=""
-ech_config_primary=""
-ech_key_primary=""
-ech_config_secondary=""
-ech_key_secondary=""
+config_ech=""
+key_ech=""
+config_ech_1=""
+key_ech_1=""
 include_vless_ws="0"
 
 info() { printf '%s\n' "${BLUE}$*${RESET}"; }
@@ -528,7 +528,7 @@ generate_materials() {
     uuid=$(cat /proc/sys/kernel/random/uuid)
     short_id=$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')
 
-    local output_x25519 output_reality output_ech_1
+    local output_x25519 output_reality output_ech output_ech_1
     output_x25519=$(mihomo generate vless-x25519)
     server_decryption=$(printf '%s\n' "$output_x25519" | awk -F'"' '/\[Server\]/ {print $2; exit}')
     client_encryption=$(printf '%s\n' "$output_x25519" | awk -F'"' '/\[Client\]/ {print $2; exit}')
@@ -538,12 +538,18 @@ generate_materials() {
     public_key_reality=$(printf '%s\n' "$output_reality" | awk -F': ' '/PublicKey:/ {print $2; exit}')
 
     output_ech=$(mihomo generate ech-keypair cloudflare-ech.com)
-    ech_config_primary=$(printf '%s\n' "$output_ech" | awk -F': ' '/^Config:/ {print $2; exit}')
-    ech_key_primary=$(printf '%s\n' "$output_ech" | sed -n '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/p' | sed '/ECH KEYS/d' | sed 's/^Key: //' | tr -d '\r' | sed 's/^/    /')
+    config_ech=$(echo "$output_ech" | awk '/Config:/ {print $2}')
+    key_ech=$(echo "$output_ech" \
+      | awk '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/' \
+      | sed 's/^Key: //' \
+      | sed 's/^/    /')
 
     output_ech_1=$(mihomo generate ech-keypair cloudflare.com)
-    ech_config_secondary=$(printf '%s\n' "$output_ech_1" | awk -F': ' '/^Config:/ {print $2; exit}')
-    ech_key_secondary=$(printf '%s\n' "$output_ech_1" | sed -n '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/p' | sed '/ECH KEYS/d' | sed 's/^Key: //' | tr -d '\r' | sed 's/^/    /')
+    config_ech_1=$(echo "$output_ech_1" | awk '/Config:/ {print $2}')
+    key_ech_1=$(echo "$output_ech_1" \
+      | awk '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/' \
+      | sed 's/^Key: //' \
+      | sed 's/^/    /')
 }
 
 write_mihomo_config() {
@@ -602,7 +608,7 @@ listeners:
   certificate: $CERT_DIR/$cert_name.crt
   private-key: $CERT_DIR/$cert_name.key
   ech-key: |
-$ech_key_primary
+$key_ech
   congestion-controller: bbr
   max-idle-time: 15000
   authentication-timeout: 1000
@@ -618,7 +624,7 @@ $ech_key_primary
   certificate: $CERT_DIR/$cert_name.crt
   private-key: $CERT_DIR/$cert_name.key
   ech-key: |
-$ech_key_primary
+$key_ech
 - name: vless-reality-in
   type: vless
   port: 58998
@@ -644,7 +650,7 @@ $ech_key_primary
   certificate: $CERT_DIR/$cert_name.crt
   private-key: $CERT_DIR/$cert_name.key
   ech-key: |
-$ech_key_secondary
+$key_ech_1
   network: [tcp]
   congestion-controller: bbr
 - name: hy2-in
@@ -658,7 +664,7 @@ $ech_key_secondary
   certificate: $CERT_DIR/$cert_name.crt
   private-key: $CERT_DIR/$cert_name.key
   ech-key: |
-$ech_key_primary
+$key_ech
 $vless_ws_block
 rules:
 - MATCH,DIRECT
@@ -782,7 +788,7 @@ proxies:
   up: "30 Mbps"
   down: "300 Mbps"
   tls: true
-  ech-opts: {enable: true, config: $ech_config_primary}
+  ech-opts: {enable: true, config: $config_ech}
   sni: $domain_name
   alpn: [h3]
 - name: "${node_prefix}-RE|${current_time}"
@@ -803,7 +809,7 @@ proxies:
   password: $uuid
   client-fingerprint: chrome
   tls: true
-  ech-opts: {enable: true, config: $ech_config_primary}
+  ech-opts: {enable: true, config: $config_ech}
   sni: $domain_name
   alpn: [h2]
 - name: "${node_prefix}-SU|${current_time}"
@@ -845,7 +851,7 @@ proxies:
   max-open-streams: 20
   tls: true
   sni: $domain_name
-  ech-opts: {enable: true, config: $ech_config_primary}
+  ech-opts: {enable: true, config: $config_ech}
 - name: "${node_prefix}-TT|${current_time}"
   type: trusttunnel
   server: $public_ip
@@ -854,7 +860,7 @@ proxies:
   password: $uuid
   client-fingerprint: chrome
   health-check: true
-  ech-opts: {enable: true, config: $ech_config_secondary}
+  ech-opts: {enable: true, config: $config_ech_1}
   sni: $domain_name
   alpn: [h2]
   congestion-controller: bbr
