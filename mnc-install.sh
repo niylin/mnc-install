@@ -51,8 +51,6 @@ uninstall_all() {
     rm -f /etc/mihomo/config.yaml
     rm -f /etc/mihomo/config.yaml.bak.*
     rm -f /etc/nginx/conf.d/subscription.conf
-    rm -rf /opt/www/convertio
-    rm -f /opt/www/convertio.tar.xz
     rm -f /opt/www/sub/config.yaml
     rm -f /opt/www/sub/README.txt
     rm -f /opt/www/sub/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].yaml
@@ -969,7 +967,6 @@ $key_ech_1
   down: 300
   certificate: /etc/mihomo/cert/$CERT_NAME.crt
   private-key: /etc/mihomo/cert/$CERT_NAME.key
-  masquerade: "file:///opt/www/convertio"
   ech-key: |
 $key_ech
 proxy-groups:
@@ -1070,18 +1067,11 @@ server {
         proxy_set_header Host \$http_host;
     }
     location / {
-        proxy_pass http://127.0.0.1:9998;
+        return 403;
     }
 }
 EOF
-cat > /etc/nginx/conf.d/default1.conf <<EOF
-server {
-    listen 127.0.0.1:9998;
-    index index.html index.htm;
-    root  /opt/www/convertio;
-    error_page 400 = /400.html;
-    }
-EOF
+
 # 创建warp出站
 if [[ "$warp_choice" =~ ^[yY]$ ]]; then
     if (set -e; warp_register_mihomo); then
@@ -1213,11 +1203,6 @@ vless://${uuid}@cf.wdqgn.eu.org:443?encryption=$(url_encode "$client_encryption"
 EOF
 fi
 
-github_download "https://github.com/niylin/mnc-install/releases/download/nhg/convertio.tar.xz" /opt/www/convertio.tar.xz || {
-    echo "错误：convertio.tar.xz 下载失败。"
-    exit 1
-}
-tar -xf /opt/www/convertio.tar.xz -C /opt/www
 github_download "https://raw.githubusercontent.com/niylin/mnc-install/master/config.yaml" /opt/www/sub/config.yaml || {
     echo "错误：config.yaml 下载失败。"
     exit 1
