@@ -1029,7 +1029,7 @@ main() {
 副端口: $secondary_port
 订阅链接: $subscription_address
 最终配置: $final_config_address
-默认域名已被墙,下载更新订阅需要代理,节点使用ech可正常使用
+默认域名已被墙,下载更新订阅需要代理
 EOF
     cat "$links_file"
 }
