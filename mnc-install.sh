@@ -40,6 +40,9 @@ uuid=""
 short_id=""
 current_time=""
 public_ip=""
+country_code="XX"
+country_flag=""
+colo_code="CF"
 node_prefix=""
 subscription_address=""
 final_config_address=""
@@ -156,6 +159,13 @@ try:
 except Exception:
     raise SystemExit(1)
 PY
+}
+
+generate_flag() {
+    country_flag=""
+    if command -v python3 >/dev/null 2>&1 && [[ "$country_code" =~ ^[A-Z][A-Z]$ ]]; then
+        country_flag=$(COUNTRY_CODE="$country_code" python3 -c 'import os; print("".join(chr(127397 + ord(c)) for c in os.environ.get("COUNTRY_CODE", "")))' 2>/dev/null || true)
+    fi
 }
 
 port_in_use() {
@@ -466,13 +476,19 @@ detect_public_ip() {
 
     trace_content=$(curl -"${ip_type_choice}" -fsS --max-time 5 https://cloudflare.com/cdn-cgi/trace 2>/dev/null || true)
     public_ip=$(printf '%s\n' "$trace_content" | sed -nE 's/^ip=(.*)$/\1/p' | head -n 1)
+    country_code=$(printf '%s\n' "$trace_content" | sed -nE 's/^loc=(.*)$/\1/p' | head -n 1)
+    colo_code=$(printf '%s\n' "$trace_content" | sed -nE 's/^colo=(.*)$/\1/p' | head -n 1)
+    country_code=${country_code:-XX}
+    colo_code=${colo_code:-CF}
 
     if ! valid_ip "$public_ip" 2>/dev/null; then
         public_ip=$(curl -"${ip_type_choice}" -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)
     fi
 
     if valid_ip "$public_ip" 2>/dev/null; then
+        generate_flag
         printf '%s\n' "${BOLD}检测到 IP: ${GREEN}${public_ip}${RESET}"
+        printf '%s\n' "${BOLD}检测到位置: ${GREEN}${country_flag:-$country_code} ${country_code} (${colo_code})${RESET}"
         read -r -p "${BOLD}IP 是否正确？默认 y，输入 n 可手动覆盖: ${RESET}" answer < /dev/tty
         case "$answer" in
             n|N|no|NO)
@@ -493,7 +509,7 @@ detect_public_ip() {
         done
     fi
 
-    node_prefix="mihomo"
+    node_prefix="${country_flag:-$country_code} ${colo_code}"
 }
 
 prompt_main_port() {
@@ -780,7 +796,7 @@ write_client_outputs() {
 
     cat > "$client_yaml" <<EOF
 proxies:
-- name: "${node_prefix}-HY|${current_time}"
+- name: "${node_prefix}-HY"
   type: hysteria2
   server: $public_ip
   port: $main_port
@@ -791,7 +807,7 @@ proxies:
   ech-opts: {enable: true, config: $config_ech}
   sni: $domain_name
   alpn: [h3]
-- name: "${node_prefix}-RE|${current_time}"
+- name: "${node_prefix}-RE"
   type: vless
   server: $public_ip
   port: $main_port
@@ -802,7 +818,7 @@ proxies:
   flow: xtls-rprx-vision
   servername: speed.cloudflare.com
   reality-opts: {public-key: $public_key_reality, short-id: $short_id}
-- name: "${node_prefix}-AN|${current_time}"
+- name: "${node_prefix}-AN"
   type: anytls
   server: $public_ip
   port: $main_port
@@ -812,7 +828,7 @@ proxies:
   ech-opts: {enable: true, config: $config_ech}
   sni: $domain_name
   alpn: [h2]
-- name: "${node_prefix}-SU|${current_time}"
+- name: "${node_prefix}-SU"
   type: sudoku
   server: $public_ip
   port: $main_port
@@ -827,7 +843,7 @@ proxies:
     path-root: "/$uuid"
     multiplex: auto
   enable-pure-downlink: false
-- name: "${node_prefix}-MR|${current_time}"
+- name: "${node_prefix}-MR"
   type: mieru
   server: $public_ip
   port: $secondary_port
@@ -835,7 +851,7 @@ proxies:
   username: $uuid
   password: $uuid
   multiplexing: MULTIPLEXING_LOW
-- name: "${node_prefix}-TU|${current_time}"
+- name: "${node_prefix}-TU"
   server: $public_ip
   port: $secondary_port
   type: tuic
@@ -852,7 +868,7 @@ proxies:
   tls: true
   sni: $domain_name
   ech-opts: {enable: true, config: $config_ech}
-- name: "${node_prefix}-TT|${current_time}"
+- name: "${node_prefix}-TT"
   type: trusttunnel
   server: $public_ip
   port: $main_port
@@ -868,7 +884,7 @@ EOF
 
     if [ "$include_vless_ws" = "1" ]; then
         cat >> "$client_yaml" <<EOF
-- name: "${node_prefix}-WS|${current_time}"
+- name: "${node_prefix}-WS"
   type: vless
   server: $domain_name
   port: 443
@@ -1008,8 +1024,13 @@ main() {
 
     ok "安装完成。"
     cat > "$links_file" <<EOF
-$subscription_address
-$final_config_address
+域名: $domain_name
+入站IP: $public_ip
+主端口: $main_port
+副端口: $secondary_port
+订阅链接: $subscription_address
+最终配置: $final_config_address
+默认域名已被墙,下载更新订阅需要代理,节点使用ech可正常使用
 EOF
     cat "$links_file"
 }
