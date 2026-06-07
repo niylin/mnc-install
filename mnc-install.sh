@@ -415,23 +415,39 @@ setup_certificate_renewal() {
 }
 
 detect_public_ip() {
-    local answer
-    while true; do
-        read -r -p "${BOLD}输入入站 IP: ${RESET}" public_ip < /dev/tty
-        valid_ip "$public_ip" || {
-            warn "IP 地址格式不合法。"
-            continue
-        }
+    local ip_type_choice trace_content answer manual_ip
 
-        printf '%s\n' "${BOLD}确认使用 IP: ${GREEN}${public_ip}${RESET}"
-        read -r -p "${BOLD}是否正确？默认 y，输入 n 重新输入: ${RESET}" answer < /dev/tty
+    read -r -p "${BOLD}使用 IPv6 输入 6，默认 IPv4: ${RESET}" ip_type_choice < /dev/tty
+    ip_type_choice="${ip_type_choice:-4}"
+
+    trace_content=$(curl -"${ip_type_choice}" -fsS --max-time 5 https://cloudflare.com/cdn-cgi/trace 2>/dev/null || true)
+    public_ip=$(printf '%s\n' "$trace_content" | sed -nE 's/^ip=(.*)$/\1/p' | head -n 1)
+
+    if ! valid_ip "$public_ip" 2>/dev/null; then
+        public_ip=$(curl -"${ip_type_choice}" -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)
+    fi
+
+    if valid_ip "$public_ip" 2>/dev/null; then
+        printf '%s\n' "${BOLD}检测到 IP: ${GREEN}${public_ip}${RESET}"
+        read -r -p "${BOLD}IP 是否正确？默认 y，输入 n 可手动覆盖: ${RESET}" answer < /dev/tty
         case "$answer" in
             n|N|no|NO)
-                continue
+                read -r -p "${BOLD}输入实际入站 IP: ${RESET}" manual_ip < /dev/tty
+                valid_ip "$manual_ip" || die "IP 地址格式不合法。"
+                public_ip="$manual_ip"
                 ;;
         esac
-        break
-    done
+    else
+        warn "未能自动获取有效 IP。"
+        while true; do
+            read -r -p "${BOLD}输入实际入站 IP: ${RESET}" public_ip < /dev/tty
+            valid_ip "$public_ip" || {
+                warn "IP 地址格式不合法。"
+                continue
+            }
+            break
+        done
+    fi
 
     node_prefix="mihomo"
 }
