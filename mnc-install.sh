@@ -874,7 +874,7 @@ EOF
         cat >> "$client_yaml" <<EOF
 - name: "${node_prefix}-WS|${current_time}"
   type: vless
-  server: cf.wdqgn.eu.org
+  server: $domain_name
   port: 443
   uuid: $uuid
   client-fingerprint: chrome
