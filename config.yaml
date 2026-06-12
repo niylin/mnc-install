@@ -65,7 +65,7 @@ proxy-groups:
   - {name: 🗽SELECT, type: select, include-all: true, proxies: [🔥AUTO, DIRECT, 🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
   - {name: 🛹OTHER, type: select, include-all: true, proxies: [🗽SELECT, ➡️全球直连,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
   - {name: 🌀Google, type: select, include-all: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]} 
-  - {name: nodeseek, type: select, include-all: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]} 
+  - {name: Nodeseek, type: select, include-all: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]} 
   - {name: ⌨️ AI, type: select, include-all: true, proxies: [🗽SELECT,🇺🇸US, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
   - {name: 📺 Media, type: select, include-all: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
   - {name: 📱Telegram, type: select, include-all: true, proxies: [🗽SELECT,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
@@ -113,7 +113,7 @@ rules:
   - GEOSITE,private,DIRECT
   - GEOSITE,category-ads-all,🏴‍☠️全球拦截
   - GEOSITE,cloudflare-cn,➡️全球直连
-  - GEOSITE,nodeseek,nodeseek
+  - GEOSITE,nodeseek,Nodeseek
   - GEOSITE,sb,➡️全球直连
   - PROCESS-NAME,sshd,➡️全球直连
   - PROCESS-NAME,ssh,➡️全球直连
