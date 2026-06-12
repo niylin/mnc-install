@@ -13,7 +13,7 @@ curl -fsSL -o mnc-install.sh https://raw.githubusercontent.com/niylin/mnc-instal
 ```
 
 ### 2. 一键安装 sing-box
-配置 `hysteria2` `reality` `anytls`。`tuic` `vmess-argo` ,创建订阅配置,sing-box配置,仅分流cn流量.clash配置以及snlink分享配置
+配置 `hysteria2` `reality` `anytls`。`tuic` `vmess-argo` .
 ```bash
 curl -fsSL -o sing-box-install.sh https://raw.githubusercontent.com/niylin/mnc-install/master/sing-box-install.sh && chmod +x sing-box-install.sh && ./sing-box-install.sh
 ```
