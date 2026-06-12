@@ -12,7 +12,7 @@
 curl -fsSL -o mnc-install.sh https://raw.githubusercontent.com/niylin/mnc-install/master/mnc-install.sh && chmod +x mnc-install.sh && ./mnc-install.sh
 ```
 
-### 2. 一键安装 sing-box
+### 2. 一键安装 sing-box,只包含一些通用协议,客户端适配广
 配置 `hysteria2` `reality` `anytls`。`tuic` `vmess-argo` .
 ```bash
 curl -fsSL -o sing-box-install.sh https://raw.githubusercontent.com/niylin/mnc-install/master/sing-box-install.sh && chmod +x sing-box-install.sh && ./sing-box-install.sh
