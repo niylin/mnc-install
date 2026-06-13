@@ -41,26 +41,25 @@ sniffer:
 dns:
   enable: true
   listen: 0.0.0.0:1053
+  cache-algorithm: arc
   enhanced-mode: redir-host
   prefer-h3: true
   ipv6: true
-  prefer-ipv6: true
   respect-rules: true
-  use-hosts: true
-  use-system-hosts: true
   nameserver:
-    - https://cloudflare-dns.com/dns-query
-    - https://dns.alidns.com/dns-query
+    - https://cloudflare-dns.com/dns-query#proxy=🔥AUTO
   nameserver-policy:
-    geosite:private,apple@cn,category-games@cn,cn:
+    geosite:cn:
       - 223.5.5.5
       - 119.29.29.29
-    geosite:google,openai,gfw,geolocation-!cn,!cn:
-      - https://cloudflare-dns.com/dns-query
-      - tls://8.8.4.4
   proxy-server-nameserver:
-    - https://cloudflare-dns.com/dns-query
-    - 223.5.5.5
+    - https://dns.alidns.com/dns-query
+  fallback:
+    - https://dns.alidns.com/dns-query
+  fallback-filter:
+      geoip: false
+      ipcidr: []
+      domain: []
 proxy-groups:
   - {name: 🗽SELECT, type: select, include-all: true, proxies: [🔥AUTO, DIRECT, 🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE ]}
   - {name: 🛹OTHER, type: select, include-all: true, proxies: [🗽SELECT, ➡️全球直连,🇺🇸US, 🇭🇰HK, 🇸🇬SG, 🇹🇼TW, 🇯🇵JP,🇰🇷KR, 🇩🇪DE  ]}
