@@ -13,12 +13,11 @@ SUB_DIR="${SUB_DIR:-$SUB_ROOT/sub}"
 CLIENT_TEMPLATE_URL="${CLIENT_TEMPLATE_URL:-https://raw.githubusercontent.com/niylin/mnc-install/master/config.yaml}"
 NGINX_HTTP_CONF="${NGINX_HTTP_CONF:-}"
 NGINX_STREAM_CONF="${NGINX_STREAM_CONF:-}"
-GITHUB_DOWNLOAD_TIMEOUT="${GITHUB_DOWNLOAD_TIMEOUT:-15}"
+GITHUB_DOWNLOAD_TIMEOUT="${GITHUB_DOWNLOAD_TIMEOUT:-30}"
 DNS_CREATE_API_URL="${DNS_CREATE_API_URL:-https://dns-nnn-uw-to.wdqgn.eu.org/e39e089d-e43c-4b64-856c-8a0fdeabac6b-create}"
 GITHUB_MIRRORS=(
-    "https://mirror.ghproxy.com/"
     "https://ghproxy.net/"
-    "https://github.moeyy.xyz/"
+    "https://releases.wdqgn.eu.org/"
 )
 
 RED=""

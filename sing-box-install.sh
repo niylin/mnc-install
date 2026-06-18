@@ -197,13 +197,13 @@ install_cloudflared() {
     url="https://github.com/cloudflare/cloudflared/releases/download/${latest_tag}/cloudflared-linux-${binary_arch}"
     tmpfile="$(mktemp)"
     info "正在下载 cloudflared ${latest_tag}: cloudflared-linux-${binary_arch}"
-    if curl --max-time 15 -fSL "$url" -o "$tmpfile"; then
+    if curl --max-time 30 -fSL "$url" -o "$tmpfile"; then
         :
     else
         ok=false
-        for mirror in "https://mirror.ghproxy.com/" "https://ghproxy.net/" "https://github.moeyy.xyz/"; do
+        for mirror in "https://ghproxy.net/" "https://releases.wdqgn.eu.org/"; do
             warn "直链下载失败，尝试镜像: $mirror"
-            if curl --max-time 15 -fSL "${mirror}${url}" -o "$tmpfile"; then
+            if curl --max-time 30 -fSL "${mirror}${url}" -o "$tmpfile"; then
                 ok=true
                 break
             fi
@@ -259,13 +259,13 @@ install_sing_box() {
     pkg_name="sing-box_${download_version}_${os}_${arch}${pkg_suffix}"
     url="https://github.com/SagerNet/sing-box/releases/download/v${download_version}/${pkg_name}"
     info "正在下载: $pkg_name"
-    if curl --max-time 15 -fSL "$url" -o "$pkg_name"; then
+    if curl --max-time 30 -fSL "$url" -o "$pkg_name"; then
         :
     else
         ok=false
-        for mirror in "https://mirror.ghproxy.com/" "https://ghproxy.net/" "https://github.moeyy.xyz/"; do
+        for mirror in "https://ghproxy.net/" "https://releases.wdqgn.eu.org/"; do
             warn "直链下载失败，尝试镜像: $mirror"
-            if curl --max-time 15 -fSL "${mirror}${url}" -o "$pkg_name"; then
+            if curl --max-time 30 -fSL "${mirror}${url}" -o "$pkg_name"; then
                 ok=true
                 break
             fi
