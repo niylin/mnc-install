@@ -1135,6 +1135,7 @@ WS path=/${uuid}-vm
 PID 文件: $PID_FILE
 域名文件: $DOMAIN_FILE
 日志文件: $TUNNEL_LOG
+订阅相关配置位于 $SUB_DIR/ 目录下
 
 如域名失效或进程退出，运行:
 $SCRIPT_NAME -tunnel res

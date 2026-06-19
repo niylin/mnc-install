@@ -20,6 +20,13 @@ GITHUB_MIRRORS=(
     "https://releases.wdqgn.eu.org/"
 )
 
+PROXY_NAME="${PROXY_NAME:-warp-masque}"
+DEVICE_NAME="${DEVICE_NAME:-mihomo-masque}"
+USQUE_CONFIG="${USQUE_CONFIG:-/etc/mihomo/usque-config.json}"
+MASQUE_SERVER="${MASQUE_SERVER:-masque.wdqgn.eu.org}"
+USQUE_REPO="${USQUE_REPO:-Diniboy1123/usque}"
+USQUE_INSTALL_DIR="${USQUE_INSTALL_DIR:-/usr/local/bin}"
+
 RED=""
 GREEN=""
 YELLOW=""
@@ -122,7 +129,7 @@ install_packages() {
 
 ensure_runtime_tools() {
     local need=()
-    for tool in curl python3 gzip; do
+    for tool in curl python3 gzip unzip; do
         command -v "$tool" >/dev/null 2>&1 || need+=("$tool")
     done
     [ "${#need[@]}" -gt 0 ] || return 0
@@ -175,6 +182,415 @@ port_in_use() {
         netstat -ltnu 2>/dev/null | grep -Eq "[.:]$port[[:space:]]"
     else
         return 1
+    fi
+}
+
+warp_log() {
+    printf '%s\n' "[WARP] $*" >&2
+}
+
+warp_die() {
+    printf '%s\n' "错误：$*" >&2
+    exit 1
+}
+
+warp_need_cmd() {
+    command -v "$1" >/dev/null 2>&1 || warp_die "缺少命令：$1"
+}
+
+warp_detect_platform() {
+    local os arch
+    os=$(uname -s | tr '[:upper:]' '[:lower:]')
+    arch=$(uname -m)
+
+    case "$os" in
+        linux|darwin) ;;
+        *) warp_die "当前系统不支持：$os" ;;
+    esac
+
+    case "$arch" in
+        x86_64|amd64) arch="amd64" ;;
+        aarch64|arm64) arch="arm64" ;;
+        armv7l|armv7*) arch="armv7" ;;
+        armv6l|armv6*) arch="armv6" ;;
+        armv5l|armv5*) arch="armv5" ;;
+        *) warp_die "当前架构不支持：$arch" ;;
+    esac
+
+    printf '%s %s\n' "$os" "$arch"
+}
+
+warp_install_usque_from_github() {
+    warp_need_cmd find
+    warp_need_cmd install
+
+    local os arch work_dir meta_file archive asset_url asset_name bin target
+    read -r os arch < <(warp_detect_platform)
+    work_dir=$(mktemp -d "${TMPDIR:-/tmp}/usque-install.XXXXXX")
+    trap 'rm -rf "$work_dir"' RETURN
+
+    meta_file="$work_dir/release.json"
+    archive="$work_dir/usque-release"
+    target="$USQUE_INSTALL_DIR/usque"
+
+    warp_log "未检测到 usque，正在从 GitHub 安装"
+    download_with_mirrors "https://api.github.com/repos/${USQUE_REPO}/releases/latest" "$meta_file" \
+        || warp_die "无法获取 usque 最新版本信息"
+
+    read -r asset_url asset_name < <(python3 - "$meta_file" "$os" "$arch" <<'PY'
+import json
+import sys
+
+release_path, os_name, arch_name = sys.argv[1:4]
+os_aliases = {
+    "linux": ("linux",),
+    "darwin": ("darwin", "macos", "osx"),
+}.get(os_name, (os_name,))
+arch_aliases = {
+    "amd64": ("amd64", "x86_64", "x64"),
+    "arm64": ("arm64", "aarch64"),
+    "armv7": ("armv7", "armv7l", "armhf"),
+    "armv6": ("armv6", "armv6l"),
+    "armv5": ("armv5", "armv5l"),
+}.get(arch_name, (arch_name,))
+
+with open(release_path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+matches = []
+for asset in data.get("assets", []):
+    name = asset.get("name", "")
+    lower = name.lower()
+    url = asset.get("browser_download_url", "")
+    if not url:
+        continue
+    if not any(alias in lower for alias in os_aliases):
+        continue
+    if not any(alias in lower for alias in arch_aliases):
+        continue
+    if any(x in lower for x in ("sha256", "checksums", ".sig", ".pem")):
+        continue
+    matches.append((url, name))
+
+if not matches:
+    names = ", ".join(asset.get("name", "") for asset in data.get("assets", []))
+    raise SystemExit(f"未找到匹配 {os_name}/{arch_name} 的 usque release asset。可用 assets: {names}")
+
+matches.sort(key=lambda item: (0 if item[1].lower().endswith((".tar.gz", ".tgz", ".tar.xz", ".txz", ".tar.bz2", ".tbz2", ".zip")) else 1, item[1]))
+print(matches[0][0], matches[0][1])
+PY
+)
+    [ -n "$asset_url" ] || warp_die "未能解析 usque 下载地址"
+
+    warp_log "下载 $asset_name"
+    download_with_mirrors "$asset_url" "$archive" || warp_die "usque 下载失败"
+
+    mkdir -p "$work_dir/extract"
+    case "$asset_name" in
+        *.tar.gz|*.tgz)
+            warp_need_cmd tar
+            tar -xzf "$archive" -C "$work_dir/extract"
+            ;;
+        *.tar.xz|*.txz)
+            warp_need_cmd tar
+            tar -xJf "$archive" -C "$work_dir/extract"
+            ;;
+        *.tar.bz2|*.tbz2)
+            warp_need_cmd tar
+            tar -xjf "$archive" -C "$work_dir/extract"
+            ;;
+        *.zip)
+            warp_need_cmd unzip
+            unzip -q "$archive" -d "$work_dir/extract"
+            ;;
+        *)
+            cp "$archive" "$work_dir/extract/usque"
+            ;;
+    esac
+
+    bin=$(find "$work_dir/extract" -type f \( -name usque -o -name usque.exe \) -print -quit)
+    [ -n "$bin" ] || warp_die "压缩包中没有找到 usque 二进制文件"
+
+    mkdir -p "$USQUE_INSTALL_DIR"
+    [ -w "$USQUE_INSTALL_DIR" ] || warp_die "$USQUE_INSTALL_DIR 不可写，请用 root 运行或设置 USQUE_INSTALL_DIR 指向可写目录"
+    install -m 0755 "$bin" "$target"
+    warp_log "已安装 usque 到 $target"
+    printf '%s\n' "$target"
+}
+
+warp_register_masque_account() {
+    local usque_bin="$1"
+    local usque_config="$2"
+    local help_text
+    local args=("--config" "$usque_config" "register" "-n" "$DEVICE_NAME")
+
+    mkdir -p "$(dirname "$usque_config")"
+    rm -f "$usque_config"
+    help_text=$("$usque_bin" register --help 2>&1 || true)
+    if grep -q -- '--accept-tos' <<<"$help_text"; then
+        args+=("--accept-tos")
+    elif grep -Eq -- '--accept.*tos' <<<"$help_text"; then
+        args+=("--accept-tos")
+    fi
+
+    warp_log "使用 usque 注册 MASQUE 账户"
+    "$usque_bin" "${args[@]}" </dev/null
+
+    [ -s "$usque_config" ] || warp_die "usque 未生成配置文件：$usque_config"
+}
+
+warp_build_mihomo_proxy() {
+    local usque_config="$1"
+
+    python3 - "$usque_config" "$PROXY_NAME" "$MASQUE_SERVER" <<'PY'
+import json
+import re
+import sys
+
+config_path, proxy_name, masque_server = sys.argv[1:4]
+with open(config_path, "r", encoding="utf-8") as fh:
+    cfg = json.load(fh)
+
+def require(key):
+    value = cfg.get(key)
+    if not value:
+        raise SystemExit(f"usque config 缺少字段：{key}")
+    return value
+
+def public_key_from_pem(value):
+    value = re.sub(r"-----BEGIN PUBLIC KEY-----", "", value)
+    value = re.sub(r"-----END PUBLIC KEY-----", "", value)
+    return "".join(value.split())
+
+private_key = require("private_key")
+public_key = public_key_from_pem(require("endpoint_pub_key"))
+ipv4 = require("ipv4")
+ipv6 = cfg.get("ipv6", "")
+
+if "/" not in ipv4:
+    ipv4 = f"{ipv4}/32"
+if ipv6 and "/" not in ipv6:
+    ipv6 = f"{ipv6}/128"
+
+lines = [
+    f"- name: {proxy_name}",
+    "  type: masque",
+    f"  server: {masque_server}",
+    "  port: 443",
+    f"  private-key: {private_key}",
+    f"  public-key: {public_key}",
+    f"  ip: {ipv4}",
+]
+if ipv6:
+    lines.append(f"  ipv6: {ipv6}")
+lines.extend([
+    "  mtu: 1280",
+    "  udp: true",
+    "  congestion-controller: bbr",
+])
+
+print("\n".join(lines))
+PY
+}
+
+warp_update_mihomo_config() {
+    local proxy_yaml="$1"
+
+    [ -f "$CONFIG_FILE" ] || warp_die "配置文件不存在：$CONFIG_FILE"
+    [ -w "$CONFIG_FILE" ] || warp_die "配置文件不可写：$CONFIG_FILE"
+
+    local backup="${CONFIG_FILE}.bak.$(date +%s)"
+    cp "$CONFIG_FILE" "$backup"
+    warp_log "已备份配置到 $backup"
+
+    PROXY_YAML="$proxy_yaml" python3 - "$CONFIG_FILE" "$PROXY_NAME" <<'PY'
+import os
+import re
+import sys
+
+config_path, proxy_name = sys.argv[1:3]
+with open(config_path, "r", encoding="utf-8") as fh:
+    lines = fh.readlines()
+proxy_lines = os.environ["PROXY_YAML"].splitlines(True)
+if proxy_lines and not proxy_lines[-1].endswith("\n"):
+    proxy_lines[-1] += "\n"
+
+item_re = re.compile(r'^\s*-\s+name:\s*["\']?' + re.escape(proxy_name) + r'["\']?\s*$')
+
+def remove_existing_proxy(src):
+    out = []
+    in_proxies = False
+    skipping = False
+    for line in src:
+        top_level = bool(re.match(r'^[A-Za-z0-9_.-]+:\s*', line))
+        if re.match(r'^proxies:\s*$', line):
+            in_proxies = True
+            skipping = False
+            out.append(line)
+            continue
+        if in_proxies and top_level:
+            in_proxies = False
+            skipping = False
+        if in_proxies and item_re.match(line):
+            skipping = True
+            continue
+        if skipping:
+            starts_next_item = bool(re.match(r'^\s*-\s+name:\s*', line))
+            if top_level or starts_next_item:
+                skipping = False
+            else:
+                continue
+        out.append(line)
+    return out
+
+lines = remove_existing_proxy(lines)
+
+proxies_idx = None
+for idx, line in enumerate(lines):
+    if re.match(r'^proxies:\s*$', line):
+        proxies_idx = idx
+        break
+
+if proxies_idx is None:
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] += "\n"
+    if lines and lines[-1].strip():
+        lines.append("\n")
+    lines.append("proxies:\n")
+    lines.extend(proxy_lines)
+else:
+    insert_at = len(lines)
+    for idx in range(proxies_idx + 1, len(lines)):
+        if re.match(r'^[A-Za-z0-9_.-]+:\s*', lines[idx]):
+            insert_at = idx
+            break
+    if insert_at > 0 and lines[insert_at - 1].strip():
+        proxy_lines = ["\n"] + proxy_lines
+    lines[insert_at:insert_at] = proxy_lines
+
+with open(config_path, "w", encoding="utf-8") as fh:
+    fh.writelines(lines)
+PY
+
+    warp_log "已更新 $CONFIG_FILE，已写入 $PROXY_NAME 出站节点"
+}
+
+warp_register_mihomo() {
+    require_cmd python3
+
+    local usque_bin proxy_yaml
+    usque_bin=$(command -v usque || true)
+    if [ -z "$usque_bin" ]; then
+        usque_bin=$(warp_install_usque_from_github)
+    fi
+
+    warp_register_masque_account "$usque_bin" "$USQUE_CONFIG"
+    proxy_yaml=$(warp_build_mihomo_proxy "$USQUE_CONFIG")
+    warp_update_mihomo_config "$proxy_yaml"
+}
+
+toggle_outbound() {
+    require_root
+
+    if [ ! -f "$CONFIG_FILE" ]; then
+        die "配置文件不存在：$CONFIG_FILE"
+    fi
+
+    if ! grep -q "name: $PROXY_NAME" "$CONFIG_FILE" 2>/dev/null; then
+        warp_log "未检测到 $PROXY_NAME 节点，正在注册..."
+        ensure_runtime_tools
+        warp_register_mihomo
+        ok "warp-masque 节点已注册"
+    fi
+
+    local current_outbound
+    current_outbound=$(python3 - "$CONFIG_FILE" "$PROXY_NAME" <<'PY'
+import re
+import sys
+
+config_path, proxy_name = sys.argv[1:3]
+with open(config_path, "r", encoding="utf-8") as fh:
+    lines = fh.readlines()
+
+in_rules = False
+for line in lines:
+    if re.match(r'^rules:\s*$', line):
+        in_rules = True
+        continue
+    if in_rules:
+        if re.match(r'^[A-Za-z0-9_.-]+:\s*$', line):
+            break
+        m = re.match(r'^\s*-\s+MATCH,(.+)$', line)
+        if m:
+            print(m.group(1).strip())
+            break
+PY
+    )
+
+    case "$current_outbound" in
+        DIRECT|direct)
+            python3 - "$CONFIG_FILE" "$PROXY_NAME" <<'PY'
+import re
+import sys
+
+config_path, proxy_name = sys.argv[1:3]
+with open(config_path, "r", encoding="utf-8") as fh:
+    lines = fh.readlines()
+
+in_rules = False
+for i, line in enumerate(lines):
+    if re.match(r'^rules:\s*$', line):
+        in_rules = True
+        continue
+    if in_rules:
+        if re.match(r'^[A-Za-z0-9_.-]+:\s*$', line):
+            break
+        if re.match(r'^\s*-\s+', line):
+            lines[i] = re.sub(r'-\s+.*', f'- MATCH,{proxy_name}', line)
+            in_rules = False
+            break
+
+with open(config_path, "w", encoding="utf-8") as fh:
+    fh.writelines(lines)
+PY
+            ok "当前出站: ${PROXY_NAME} (WARP MASQUE)"
+            ;;
+        *)
+            python3 - "$CONFIG_FILE" "$PROXY_NAME" <<'PY'
+import re
+import sys
+
+config_path, proxy_name = sys.argv[1:3]
+with open(config_path, "r", encoding="utf-8") as fh:
+    lines = fh.readlines()
+
+in_rules = False
+for i, line in enumerate(lines):
+    if re.match(r'^rules:\s*$', line):
+        in_rules = True
+        continue
+    if in_rules:
+        if re.match(r'^[A-Za-z0-9_.-]+:\s*$', line):
+            break
+        if re.match(r'^\s*-\s+', line):
+            lines[i] = re.sub(r'-\s+.*', '- MATCH,DIRECT', line)
+            in_rules = False
+            break
+
+with open(config_path, "w", encoding="utf-8") as fh:
+    fh.writelines(lines)
+PY
+            ok "当前出站: DIRECT (直连)"
+            ;;
+    esac
+
+    if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet mihomo 2>/dev/null; then
+        systemctl restart mihomo
+        ok "mihomo 已重启，新路由已生效"
+    elif command -v rc-service >/dev/null 2>&1; then
+        rc-service mihomo restart 2>/dev/null || warn "请手动重启 mihomo"
+    else
+        warn "请手动重启 mihomo 以应用新出站路由"
     fi
 }
 
@@ -514,7 +930,7 @@ detect_public_ip() {
 
 prompt_main_port() {
     local selected
-    read -r -p "${BOLD}输入主入站端口，默认 443；输入任意端口后第二端口使用该端口+1: ${RESET}" selected < /dev/tty
+    read -r -p "${BOLD}输入主入站端口，默认 443 2053；输入任意端口后第二端口使用该端口+1: ${RESET}" selected < /dev/tty
     selected="${selected:-443}"
 
     if ! [[ "$selected" =~ ^[0-9]+$ ]] || [ "$selected" -lt 1 ] || [ "$selected" -gt 65534 ]; then
@@ -906,6 +1322,8 @@ uninstall_all() {
     rm -f /etc/systemd/system/mihomo.service
     rm -f /etc/init.d/mihomo
     rm -f /usr/local/bin/mihomo
+    rm -f "$USQUE_INSTALL_DIR/usque"
+    rm -f "$USQUE_CONFIG"
     rm -f "$CONFIG_FILE"
     rm -f "$CONFIG_FILE".bak.*
     rm -f "$CERT_DIR/$cert_name.crt"
@@ -930,11 +1348,14 @@ show_help() {
 
   不带参数:
   安装 mihomo、nginx，生成 mihomo 配置、订阅文件，并写入 nginx 配置。
+  交互式中可选择配置 WARP MASQUE 出站。
 
 参数:
   -h, --help, help   显示帮助
-  -uninstall         删除脚本创建的服务、配置、订阅文件，并移除 mihomo/nginx 相关文件
+   -uninstall         删除脚本创建的服务、配置、订阅文件，并移除 mihomo/usque 相关文件
   -mihomo            仅安装 mihomo 二进制和服务文件
+  -warpreg           只注册 WARP MASQUE 账户，并把 warp-masque 出站写入 CONFIG_FILE
+  -t, -toggle        切换出站路由 (WARP <-> DIRECT)，若 WARP 节点不存在则自动注册
 
 可通过环境变量覆盖:
   CERTIFICATE_NAME   默认 nauk.eu.cc
@@ -942,6 +1363,9 @@ show_help() {
   CERT_DIR           默认 /etc/mihomo/cert
   CONFIG_FILE        默认 /etc/mihomo/config.yaml
   SUB_DIR            默认 /opt/www/sub
+  USQUE_INSTALL_DIR  默认 /usr/local/bin
+  USQUE_CONFIG       默认 /etc/mihomo/usque-config.json
+  MASQUE_SERVER      默认 masque.wdqgn.eu.org
 EOF
 }
 
@@ -962,6 +1386,16 @@ main() {
             install_mihomo
             exit 0
             ;;
+        -warpreg)
+            require_root
+            ensure_runtime_tools
+            warp_register_mihomo
+            exit 0
+            ;;
+        -t|-toggle)
+            toggle_outbound
+            exit 0
+            ;;
         "")
             ;;
         *)
@@ -979,10 +1413,48 @@ main() {
     detect_public_ip
     prompt_main_port
     generate_materials
+
+    local warp_choice=""
+    read -r -p "${BOLD}是否要配置 Warp 节点出站? y 配置, 其他跳过: ${RESET}" warp_choice < /dev/tty
+
     create_dns_record
     download_certificates
     setup_certificate_renewal
     write_mihomo_config
+
+    if [[ "$warp_choice" =~ ^[yY]$ ]]; then
+        if (set -e; warp_register_mihomo); then
+            ok "WARP 创建成功"
+            python3 - "$CONFIG_FILE" "$PROXY_NAME" <<'PY'
+import re
+import sys
+
+config_path, proxy_name = sys.argv[1:3]
+with open(config_path, "r", encoding="utf-8") as fh:
+    lines = fh.readlines()
+
+in_rules = False
+for i, line in enumerate(lines):
+    if re.match(r'^rules:\s*$', line):
+        in_rules = True
+        continue
+    if in_rules:
+        if re.match(r'^[A-Za-z0-9_.-]+:\s*$', line):
+            break
+        if re.match(r'^\s*-\s+', line):
+            lines[i] = re.sub(r'-\s+.*', f'- MATCH,{proxy_name}', line)
+            in_rules = False
+            break
+
+with open(config_path, "w", encoding="utf-8") as fh:
+    fh.writelines(lines)
+PY
+            ok "默认出站路由已切换至 ${PROXY_NAME}"
+        else
+            warn "WARP 创建失败，已跳过"
+        fi
+    fi
+
     write_nginx_config
 
     nginx -t
@@ -992,11 +1464,13 @@ main() {
     ok "安装完成。"
     cat > "$links_file" <<EOF
 入站IP: $public_ip
-主端口: $main_port
-副端口: $secondary_port
-订阅链接: $subscription_address
-最终配置: $final_config_address
+VLESS Hysteria anytls trusttunnel 端口: $main_port
+mieru tuic 端口: $secondary_port
+proxy-providers链接: $subscription_address
+完整订阅链接: $final_config_address
+切换 warp 出站状态,运行 -t ,清理配置运行 -uninstall 
 默认域名已被墙,下载更新订阅需要代理
+订阅相关配置位于 $SUB_DIR/ 目录下
 EOF
     cat "$links_file"
 }
