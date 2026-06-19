@@ -50,6 +50,7 @@ country_code="XX"
 country_flag=""
 colo_code="CF"
 node_prefix=""
+custom_name=""
 subscription_address=""
 final_config_address=""
 links_file=""
@@ -925,7 +926,7 @@ detect_public_ip() {
         done
     fi
 
-    node_prefix="${country_flag:-$country_code} ${colo_code}"
+    node_prefix="${custom_name:+${custom_name} }${country_flag:-$country_code} ${colo_code}"
 }
 
 prompt_main_port() {
@@ -1356,6 +1357,7 @@ show_help() {
   -mihomo            仅安装 mihomo 二进制和服务文件
   -warpreg           只注册 WARP MASQUE 账户，并把 warp-masque 出站写入 CONFIG_FILE
   -t, -toggle        切换出站路由 (WARP <-> DIRECT)，若 WARP 节点不存在则自动注册
+  -name <名称>       为客户端节点名称添加指定前缀
 
 可通过环境变量覆盖:
   CERTIFICATE_NAME   默认 nauk.eu.cc
@@ -1395,6 +1397,13 @@ main() {
         -t|-toggle)
             toggle_outbound
             exit 0
+            ;;
+        -name)
+            if [ -z "${2:-}" ]; then
+                die "-name 参数缺少值"
+            fi
+            custom_name="$2"
+            shift 2
             ;;
         "")
             ;;
