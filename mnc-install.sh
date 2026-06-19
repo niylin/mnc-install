@@ -616,7 +616,10 @@ detect_nginx_paths() {
     local http_dir stream_dir
     if [ -d /etc/nginx/http.d ] || [ -f /etc/alpine-release ]; then
         http_dir="/etc/nginx/http.d"
-        mv /etc/nginx/conf.d/stream.conf /etc/nginx/conf.d/stream.conf.bak 2>/dev/null || true
+        if [ -f /etc/nginx/conf.d/stream.conf ]; then
+            rm -f /etc/nginx/conf.d/stream.conf.bak 2>/dev/null || true
+            mv /etc/nginx/conf.d/stream.conf /etc/nginx/conf.d/stream.conf.bak
+        fi
     else
         http_dir="/etc/nginx/conf.d"
     fi
