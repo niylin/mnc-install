@@ -616,10 +616,6 @@ detect_nginx_paths() {
     local http_dir stream_dir
     if [ -d /etc/nginx/http.d ] || [ -f /etc/alpine-release ]; then
         http_dir="/etc/nginx/http.d"
-        if [ -f /etc/nginx/conf.d/stream.conf ]; then
-            rm -f /etc/nginx/conf.d/stream.conf.bak 2>/dev/null || true
-            mv /etc/nginx/conf.d/stream.conf /etc/nginx/conf.d/stream.conf.bak
-        fi
     else
         http_dir="/etc/nginx/conf.d"
     fi
@@ -1421,6 +1417,10 @@ main() {
     backup_alpine_default_confs
     stop_conflicting_services
     install_nginx
+    if [ -f /etc/alpine-release ] && [ -f /etc/nginx/conf.d/stream.conf ]; then
+        rm -f /etc/nginx/conf.d/stream.conf.bak 2>/dev/null || true
+        mv /etc/nginx/conf.d/stream.conf /etc/nginx/conf.d/stream.conf.bak
+    fi
     install_mihomo
     detect_public_ip
     prompt_main_port
