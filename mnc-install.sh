@@ -592,21 +592,6 @@ EOF
 log:
   level: info
 listeners:
-- name: sudoku-in
-  type: sudoku
-  port: 58995
-  listen: 127.0.0.1
-  key: $uuid
-  aead-method: chacha20-poly1305
-  padding-min: 1
-  padding-max: 7
-  table-type: prefer_ascii
-  handshake-timeout: 5
-  enable-pure-downlink: false
-  httpmask:
-    disable: false
-    mode: legacy
-    path_root: "/$uuid"
 - name: mieru-in
   type: mieru
   port: $secondary_port
@@ -746,12 +731,9 @@ stream {
         speed.cloudflare.com   reality;
         cloudflare.com         trusttunnel;
         $domain_name           website;
-        default                sudoku;
+        default                website;
     }
 
-    upstream sudoku {
-        server 127.0.0.1:58995;
-    }
 
     upstream anytls {
         server 127.0.0.1:58997;
@@ -828,21 +810,6 @@ proxies:
   ech-opts: {enable: true, config: $config_ech}
   sni: $domain_name
   alpn: [h2]
-- name: "${node_prefix}-SU"
-  type: sudoku
-  server: $public_ip
-  port: $main_port
-  key: "$uuid"
-  aead-method: chacha20-poly1305
-  padding-min: 1
-  padding-max: 7
-  table-type: prefer_ascii
-  httpmask:
-    disable: false
-    mode: legacy
-    path-root: "/$uuid"
-    multiplex: auto
-  enable-pure-downlink: false
 - name: "${node_prefix}-MR"
   type: mieru
   server: $public_ip
