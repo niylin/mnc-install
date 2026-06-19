@@ -1005,8 +1005,7 @@ EOF
     fi
 
     cat > "$CONFIG_FILE" <<EOF
-log:
-  level: info
+ipv6: true
 listeners:
 - name: mieru-in
   type: mieru
