@@ -7,7 +7,8 @@
 ## 使用说明
 
 ### 1. 一键安装 mihomo (推荐)
-安装mihomo并配置 `hysteria2`， `vless-reality`， `anytls`， `vless-ws` , `tuic-v5`, `mieru`, `trusrtunnel`。
+- 安装mihomo并配置 `hysteria2`， `vless-reality`， `anytls`， `vless-ws` , `tuic-v5`, `mieru`, `trusrtunnel`。
+- 可选warp出站,为单栈vps提供双栈出站能力
 ```bash
 curl -fsSL -o mnc-install.sh https://raw.githubusercontent.com/niylin/mnc-install/master/mnc-install.sh && chmod +x mnc-install.sh && ./mnc-install.sh
 ```
