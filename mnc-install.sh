@@ -976,7 +976,7 @@ generate_materials() {
       | sed 's/^Key: //' \
       | sed 's/^/    /')
 
-    output_ech_1=$(mihomo generate ech-keypair cloudflare.com)
+    output_ech_1=$(mihomo generate ech-keypair speed.cloudflare.com)
     config_ech_1=$(echo "$output_ech_1" | awk '/Config:/ {print $2}')
     key_ech_1=$(echo "$output_ech_1" \
       | awk '/-----BEGIN ECH KEYS-----/,/-----END ECH KEYS-----/' \
@@ -1050,12 +1050,12 @@ $key_ech
     username: 1
     flow: xtls-rprx-vision
   reality-config:
-    dest: speed.cloudflare.com:443
+    dest: www.freeconvert.com:443
     private-key: $private_key_reality
     short-id:
       - $short_id
     server-names:
-      - speed.cloudflare.com
+      - www.freeconvert.com
 - name: trusttunnel-in
   type: trusttunnel
   port: 58999
@@ -1143,8 +1143,8 @@ write_nginx_config() {
 stream {
     map \$ssl_preread_server_name \$backend {
         cloudflare-ech.com     anytls;
-        speed.cloudflare.com   reality;
-        cloudflare.com         trusttunnel;
+        www.freeconvert.com   reality;
+        speed.cloudflare.com         trusttunnel;
         $domain_name           website;
         default                website;
     }
@@ -1213,7 +1213,7 @@ proxies:
   network: tcp
   tls: true
   flow: xtls-rprx-vision
-  servername: speed.cloudflare.com
+  servername: www.freeconvert.com
   reality-opts: {public-key: $public_key_reality, short-id: $short_id}
 - name: "${node_prefix}-AN"
   type: anytls

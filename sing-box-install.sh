@@ -26,7 +26,7 @@ VMESS_PORT="${VMESS_PORT:-58997}"
 
 MAIN_PORT="${MAIN_PORT:-443}"
 SECOND_PORT="${SECOND_PORT:-2053}"
-REALITY_DOMAIN="${REALITY_DOMAIN:-www.cloudflare.com}"
+REALITY_DOMAIN="${REALITY_DOMAIN:-www.freeconvert.com}"
 ECH_DOMAIN="${ECH_DOMAIN:-cloudflare-ech.com}"
 CLIENT_TEMPLATE_URL="${CLIENT_TEMPLATE_URL:-https://raw.githubusercontent.com/niylin/mnc-install/master/config.yaml}"
 SCRIPT_DOWNLOAD_URL="${SCRIPT_DOWNLOAD_URL:-https://raw.githubusercontent.com/niylin/mnc-install/master/sing-box-install.sh}"
