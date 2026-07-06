@@ -23,7 +23,7 @@ GITHUB_MIRRORS=(
 PROXY_NAME="${PROXY_NAME:-warp-masque}"
 DEVICE_NAME="${DEVICE_NAME:-mihomo-masque}"
 USQUE_CONFIG="${USQUE_CONFIG:-/etc/mihomo/usque-config.json}"
-MASQUE_SERVER="${MASQUE_SERVER:-masque.wdqgn.eu.org}"
+MASQUE_SERVER="${MASQUE_SERVER:-h2-masque.wdqgn.eu.org}"
 USQUE_REPO="${USQUE_REPO:-Diniboy1123/usque}"
 USQUE_INSTALL_DIR="${USQUE_INSTALL_DIR:-/usr/local/bin}"
 
@@ -386,7 +386,7 @@ if ipv6:
     lines.append(f"  ipv6: {ipv6}")
 lines.extend([
     "  mtu: 1280",
-    "  udp: true",
+    "  network: h2",
     "  congestion-controller: bbr",
 ])
 
@@ -1365,7 +1365,7 @@ show_help() {
   SUB_DIR            默认 /opt/www/sub
   USQUE_INSTALL_DIR  默认 /usr/local/bin
   USQUE_CONFIG       默认 /etc/mihomo/usque-config.json
-  MASQUE_SERVER      默认 masque.wdqgn.eu.org
+  MASQUE_SERVER      默认 h2-masque.wdqgn.eu.org
 EOF
 }
 
