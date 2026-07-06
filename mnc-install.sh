@@ -342,13 +342,14 @@ warp_register_masque_account() {
 
 warp_build_mihomo_proxy() {
     local usque_config="$1"
+    local sni="${2:-}"
 
-    python3 - "$usque_config" "$PROXY_NAME" "$MASQUE_SERVER" <<'PY'
+    python3 - "$usque_config" "$PROXY_NAME" "$MASQUE_SERVER" "$sni" <<'PY'
 import json
 import re
 import sys
 
-config_path, proxy_name, masque_server = sys.argv[1:4]
+config_path, proxy_name, masque_server, sni = sys.argv[1:5]
 with open(config_path, "r", encoding="utf-8") as fh:
     cfg = json.load(fh)
 
@@ -377,11 +378,15 @@ lines = [
     f"- name: {proxy_name}",
     "  type: masque",
     f"  server: {masque_server}",
+]
+if sni:
+    lines.append(f"  sni: {sni}")
+lines.extend([
     "  port: 443",
     f"  private-key: {private_key}",
     f"  public-key: {public_key}",
     f"  ip: {ipv4}",
-]
+])
 if ipv6:
     lines.append(f"  ipv6: {ipv6}")
 lines.extend([
@@ -394,17 +399,19 @@ print("\n".join(lines))
 PY
 }
 
-warp_update_mihomo_config() {
-    local proxy_yaml="$1"
+warp_update_yaml_proxies() {
+    local target_file="$1"
+    local proxy_yaml="$2"
+    local target_label="${3:-$target_file}"
 
-    [ -f "$CONFIG_FILE" ] || warp_die "配置文件不存在：$CONFIG_FILE"
-    [ -w "$CONFIG_FILE" ] || warp_die "配置文件不可写：$CONFIG_FILE"
+    [ -f "$target_file" ] || warp_die "配置文件不存在：$target_file"
+    [ -w "$target_file" ] || warp_die "配置文件不可写：$target_file"
 
-    local backup="${CONFIG_FILE}.bak.$(date +%s)"
-    cp "$CONFIG_FILE" "$backup"
+    local backup="${target_file}.bak.$(date +%s)"
+    cp "$target_file" "$backup"
     warp_log "已备份配置到 $backup"
 
-    PROXY_YAML="$proxy_yaml" python3 - "$CONFIG_FILE" "$PROXY_NAME" <<'PY'
+    PROXY_YAML="$proxy_yaml" python3 - "$target_file" "$PROXY_NAME" <<'PY'
 import os
 import re
 import sys
@@ -473,7 +480,41 @@ with open(config_path, "w", encoding="utf-8") as fh:
     fh.writelines(lines)
 PY
 
-    warp_log "已更新 $CONFIG_FILE，已写入 $PROXY_NAME 出站节点"
+    warp_log "已更新 $target_label，已写入 $PROXY_NAME 出站节点"
+}
+
+warp_update_mihomo_config() {
+    local proxy_yaml="$1"
+
+    warp_update_yaml_proxies "$CONFIG_FILE" "$proxy_yaml" "$CONFIG_FILE"
+}
+
+ensure_client_subscription_template() {
+    local client_config="$SUB_DIR/config.yaml"
+
+    mkdir -p "$SUB_DIR"
+    if [ -f "$client_config" ]; then
+        return 0
+    fi
+
+    warp_log "客户端订阅模板不存在，正在下载到 $client_config"
+    download_with_mirrors "$CLIENT_TEMPLATE_URL" "$client_config" || warp_die "config.yaml 下载失败"
+}
+
+warp_register_client_subscription() {
+    require_cmd python3
+    ensure_client_subscription_template
+
+    local usque_bin proxy_yaml client_config
+    client_config="$SUB_DIR/config.yaml"
+    usque_bin=$(command -v usque || true)
+    if [ -z "$usque_bin" ]; then
+        usque_bin=$(warp_install_usque_from_github)
+    fi
+
+    warp_register_masque_account "$usque_bin" "$USQUE_CONFIG"
+    proxy_yaml=$(warp_build_mihomo_proxy "$USQUE_CONFIG" "www.bing.com")
+    warp_update_yaml_proxies "$client_config" "$proxy_yaml" "$client_config"
 }
 
 warp_register_mihomo() {
@@ -1354,6 +1395,7 @@ show_help() {
    -uninstall         删除脚本创建的服务、配置、订阅文件，并移除 mihomo/usque 相关文件
   -mihomo            仅安装 mihomo 二进制和服务文件
   -warpreg           只注册 WARP MASQUE 账户，并把 warp-masque 出站写入 CONFIG_FILE
+  add-client-warp    注册 WARP MASQUE 账户，并把带 SNI 的 warp-masque 出站写入客户端订阅
   -t, -toggle        切换出站路由 (WARP <-> DIRECT)，若 WARP 节点不存在则自动注册
   -name <名称>       为客户端节点名称添加指定前缀
 
@@ -1390,6 +1432,12 @@ main() {
             require_root
             ensure_runtime_tools
             warp_register_mihomo
+            exit 0
+            ;;
+        add-client-warp|-add-client-warp)
+            require_root
+            ensure_runtime_tools
+            warp_register_client_subscription
             exit 0
             ;;
         -t|-toggle)
