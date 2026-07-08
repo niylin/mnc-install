@@ -1319,7 +1319,7 @@ EOF
   tls: true
   ech-opts: {enable: true}
   servername: $domain_name
-  ws-opts: {path: /$uuid-vm, headers: {Host: $domain_name}}"
+  ws-opts: {path: /$uuid-vm, headers: {Host: $domain_name}}
 EOF
     fi
 
