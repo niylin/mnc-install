@@ -1137,12 +1137,12 @@ server {
     ssl_certificate_key $CERT_DIR/$cert_name.key;
 
     server_name $domain_name;
-    ssl_protocols TLSv1.3;
-    ssl_ecdh_curve X25519:P-256:P-384:P-521;
+    ssl_protocols         TLSv1.3;
+    ssl_ecdh_curve        X25519:P-256:P-384:P-521;
     ssl_early_data on;
     ssl_stapling on;
     ssl_stapling_verify on;
-
+    
     port_in_redirect off;
     absolute_redirect off;
 
@@ -1153,12 +1153,13 @@ server {
     }
 
     location /$uuid-vm {
-        proxy_redirect off;
         proxy_pass http://127.0.0.1:58991;
         proxy_http_version 1.1;
+        proxy_set_header Host \$host;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$http_host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 
     location / {
