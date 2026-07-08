@@ -1152,7 +1152,7 @@ server {
         default_type application/octet-stream;
     }
 
-    location /$uuid-vl {
+    location /$uuid-vm {
         proxy_redirect off;
         proxy_pass http://127.0.0.1:58991;
         proxy_http_version 1.1;
