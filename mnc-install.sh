@@ -1031,16 +1031,15 @@ write_mihomo_config() {
     local vless_ws_block=""
     if [ "$include_vless_ws" = "1" ]; then
         vless_ws_block=$(cat <<EOF
-- name: vless-ws-in
-  type: vless
+- name: vmess-ws-in
+  type: vmess
   listen: 127.0.0.1
   port: 58991
   users:
-    - username: 1
+    - username: $uuid
       uuid: $uuid
-      flow: xtls-rprx-vision
-  decryption: $server_decryption
-  ws-path: /$uuid-vl
+      alterId: 0
+  ws-path: /$uuid-vm
 EOF
 )
     fi
@@ -1307,19 +1306,20 @@ EOF
 
     if [ "$include_vless_ws" = "1" ]; then
         cat >> "$client_yaml" <<EOF
-- name: "${node_prefix}-WS"
-  type: vless
+- name: "${node_prefix}-CF"
+  type: vmess
   server: $domain_name
   port: 443
+  username: $uuid
   uuid: $uuid
+  alterId: 0
+  cipher: auto
   client-fingerprint: chrome
   network: ws
   tls: true
   ech-opts: {enable: true}
-  flow: xtls-rprx-vision
-  alpn: [h2]
-  ws-opts: {path: /$uuid-vl, headers: {host: $domain_name}}
-  encryption: $client_encryption
+  servername: $domain_name
+  ws-opts: {path: /$uuid-vm, headers: {Host: $domain_name}}"
 EOF
     fi
 
